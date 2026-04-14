@@ -6,3 +6,4 @@ venv/
 .env
 *.db
 cloud/api/data/
+edge/data/

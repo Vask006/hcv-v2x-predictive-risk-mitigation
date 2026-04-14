@@ -23,6 +23,16 @@ phase0:
   gps_lines_to_log: 10
   frame_interval_sec: 0.5
 
+# Local recording (python -m app.record_session). Paths under edge/ if relative.
+recording:
+  output_base: "data/recordings"
+  fps: 15
+  duration_sec: 0
+  video_filename: "camera.mp4"
+  gps_filename: "gps.jsonl"
+  session_meta_filename: "session.json"
+  gps_optional: true
+
 cloud:
   # Used by later phases; ingest base URL for uploader
   ingest_base_url: "http://127.0.0.1:8000"

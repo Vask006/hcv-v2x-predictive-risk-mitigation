@@ -1,0 +1,29 @@
+# Install on Jetson (edit User + paths to match your login and clone location):
+#   sudo install -m 755 deploy/hcv-record-start.sh /opt/hcv-edge/hcv-record-start.sh
+#   OR keep script inside the git repo and point ExecStart to that absolute path.
+#
+#   sudo cp deploy/hcv-record.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable hcv-record.service
+#   sudo systemctl start hcv-record.service
+#
+# Logs: journalctl -u hcv-record.service -f
+# Recordings: see recording.output_base in config (default: edge/data/recordings/<UTC>/)
+
+[Unit]
+Description=HCV camera and GPS recording (timestamped sessions)
+After=multi-user.target network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=isha
+Group=isha
+WorkingDirectory=/home/isha/hcv-v2x-predictive-risk-mitigation/jetson-hcv-risk-poc/edge
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/home/isha/hcv-v2x-predictive-risk-mitigation/jetson-hcv-risk-poc/edge/deploy/hcv-record-start.sh
+Restart=always
+RestartSec=15
+
+[Install]
+WantedBy=multi-user.target
