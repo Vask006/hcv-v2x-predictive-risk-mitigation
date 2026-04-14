@@ -1,0 +1,29 @@
+# Phase 0 — edge defaults (override with EDGE_CONFIG env or --config)
+
+device_id: "edge-dev-001"
+
+# Monotonic + wall clock logging
+log_utc: true
+
+camera:
+  # OpenCV index (0 = default). On Jetson, you may use a GStreamer pipeline string instead.
+  backend: "opencv"
+  index: 0
+  # Example for Jetson USB / CSI (uncomment and set backend to gstreamer in code if extended):
+  # gstream_pipeline: "nvarguscamerasrc ! ..."
+
+gps:
+  # Serial device: COM3 on Windows, /dev/ttyUSB0 or /dev/ttyACM0 on Linux/Jetson
+  port: "/dev/ttyUSB0"
+  baud: 9600
+  timeout_sec: 1.0
+
+phase0:
+  frames_to_log: 5
+  gps_lines_to_log: 10
+  frame_interval_sec: 0.5
+
+cloud:
+  # Used by later phases; ingest base URL for uploader
+  ingest_base_url: "http://127.0.0.1:8000"
+  api_key: ""

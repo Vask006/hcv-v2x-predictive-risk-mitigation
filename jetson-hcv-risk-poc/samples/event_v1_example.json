@@ -1,0 +1,28 @@
+{
+  "schema_version": "1.0",
+  "event_id": "550e8400-e29b-41d4-a716-446655440000",
+  "device_id": "edge-dev-001",
+  "recorded_at": "2026-04-13T18:00:00.000Z",
+  "gps": {
+    "latitude_deg": 47.285,
+    "longitude_deg": 8.5537,
+    "altitude_m": 420.0,
+    "speed_mps": 22.4,
+    "course_deg": 84.4,
+    "fix_quality": 1,
+    "hdop": 1.2,
+    "satellites": 8
+  },
+  "risk": {
+    "score": 0.42,
+    "band": "medium",
+    "reason_codes": ["kinematics.hard_brake_proxy", "perception.closure_rate_high"]
+  },
+  "perception_summary": {
+    "nearest_object_m": 12.5
+  },
+  "media": {
+    "thumbnail_uri": null,
+    "clip_uri": null
+  }
+}

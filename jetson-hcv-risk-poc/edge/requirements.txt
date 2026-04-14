@@ -1,0 +1,4 @@
+# Phase 0 edge (Jetson / dev workstation)
+opencv-python-headless>=4.8.0
+pyserial>=3.5
+PyYAML>=6.0
