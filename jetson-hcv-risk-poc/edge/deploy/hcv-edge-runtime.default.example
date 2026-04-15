@@ -1,0 +1,4 @@
+# Copy to /etc/default/hcv-edge-runtime and adjust.
+# Keep this service slightly delayed so camera/gps writers are active first.
+# HCV_BOOT_DELAY_SEC=35
+# HCV_CONFIG=/home/isha/hcv-v2x-predictive-risk-mitigation/jetson-hcv-risk-poc/edge/config/default.yaml

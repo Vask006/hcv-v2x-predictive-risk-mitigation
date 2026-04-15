@@ -11,6 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
 from database import EventRecord, get_db, init_db
+from enrichment import build_mock_context
 from schemas import EventV1, EventV1Response
 
 app = FastAPI(title="HCV Risk API", version="0.1.0")
@@ -56,6 +57,7 @@ def ingest_event(body: EventV1, db: Session = Depends(get_db)) -> EventV1Respons
 def list_events(
     limit: int = 50,
     device_id: Optional[str] = None,
+    enrich: bool = False,
     db: Session = Depends(get_db),
 ) -> dict:
     if limit > 500:
@@ -64,17 +66,21 @@ def list_events(
     if device_id:
         q = q.filter(EventRecord.device_id == device_id)
     rows = q.limit(limit).all()
-    return {
-        "items": [
-            {
-                "event_id": r.event_id,
-                "device_id": r.device_id,
-                "recorded_at": r.recorded_at.isoformat(),
-                "payload": r.payload,
-            }
-            for r in rows
-        ]
-    }
+    items = []
+    for r in rows:
+        row = {
+            "event_id": r.event_id,
+            "device_id": r.device_id,
+            "recorded_at": r.recorded_at.isoformat(),
+            "payload": r.payload,
+        }
+        if enrich:
+            gps = r.payload.get("gps", {}) if isinstance(r.payload, dict) else {}
+            lat = float(gps.get("latitude_deg", 0.0))
+            lon = float(gps.get("longitude_deg", 0.0))
+            row["context_enrichment"] = build_mock_context(r.recorded_at, lat=lat, lon=lon)
+        items.append(row)
+    return {"items": items}
 
 
 # Tests / dev: optional reset (disabled unless ENABLE_RESET=1)

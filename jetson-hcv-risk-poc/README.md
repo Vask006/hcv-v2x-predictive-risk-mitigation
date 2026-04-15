@@ -131,6 +131,38 @@ sudo systemctl restart hcv-camera-record.service
 sudo systemctl restart hcv-gps-record.service
 ```
 
+### Phase 1 runtime (risk scoring + queue + cloud upload)
+
+Phase 1 architecture details live in `PHASE1_POC_ARCHITECTURE.md`.
+The runtime consumes latest sensor outputs, generates `event_v1` records, stores them in a durable queue, and uploads to cloud when reachable.
+
+Run manually:
+
+```bash
+cd jetson-hcv-risk-poc/edge
+source .venv/bin/activate
+python -m app.edge_runtime --config config/default.yaml
+```
+
+Install as service:
+
+```bash
+chmod +x edge/deploy/hcv-edge-runtime-start.sh
+sudo cp edge/deploy/hcv-edge-runtime.service /etc/systemd/system/
+sudo cp edge/deploy/hcv-edge-runtime.default.example /etc/default/hcv-edge-runtime
+sudo systemctl daemon-reload
+sudo systemctl enable hcv-edge-runtime.service
+sudo systemctl start hcv-edge-runtime.service
+```
+
+Inspect runtime health:
+
+```bash
+journalctl -u hcv-edge-runtime.service -f
+ls edge/data/recordings/phase1_events/pending
+ls edge/data/recordings/phase1_events/sent
+```
+
 **Validation clip (~30s, one-shot):** use `edge/deploy/hcv-record-validation.service` so recording **stops cleanly** (MP4 `moov` written). It uses `--mock-gps` and `Restart=no` (does not loop like the main service).
 
 ```bash
@@ -158,6 +190,7 @@ uvicorn main:app --reload --host 0.0.0.0 --port 8000
 
 - Health: `GET http://127.0.0.1:8000/health`
 - Ingest: `POST http://127.0.0.1:8000/v1/events` with body matching `samples/event_v1_example.json`
+- List with mock context enrichment: `GET http://127.0.0.1:8000/v1/events?enrich=true`
 
 ### Cloud API — Docker (Postgres)
 
