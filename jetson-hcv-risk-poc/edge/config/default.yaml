@@ -6,14 +6,16 @@ device_id: "edge-dev-001"
 log_utc: true
 
 camera:
-  # OpenCV index (0 = default). On Jetson, you may use a GStreamer pipeline string instead.
+  # OpenCV index (0 = /dev/video0). Run: ls /dev/video*  — needs a plugged-in USB webcam or CSI camera.
+  # Linux: user should be in group "video" (sudo usermod -aG video $USER, re-login).
   backend: "opencv"
   index: 0
   # Example for Jetson USB / CSI (uncomment and set backend to gstreamer in code if extended):
   # gstream_pipeline: "nvarguscamerasrc ! ..."
 
 gps:
-  # Serial device: COM3 on Windows, /dev/ttyUSB0 or /dev/ttyACM0 on Linux/Jetson
+  # Must match your receiver: run `ls /dev/ttyUSB* /dev/ttyACM*` — many USB GPS modules use ttyACM0.
+  # Windows: COM3 etc. Linux user should be in group "dialout".
   port: "/dev/ttyUSB0"
   baud: 9600
   timeout_sec: 1.0
