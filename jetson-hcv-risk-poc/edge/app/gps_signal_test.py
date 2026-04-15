@@ -26,6 +26,13 @@ def _load_config(path: Path) -> dict:
         return yaml.safe_load(f)
 
 
+def _list_serial_hints() -> str:
+    import glob
+
+    parts = sorted(glob.glob("/dev/ttyUSB*") + glob.glob("/dev/ttyACM*"))
+    return "  " + "\n  ".join(parts) if parts else "  (none — plug in USB GPS / check cable)"
+
+
 def _raw_dump(port: str, baud: int, timeout_sec: float, duration_sec: float) -> None:
     import serial  # type: ignore
 
@@ -47,6 +54,12 @@ def _raw_dump(port: str, baud: int, timeout_sec: float, duration_sec: float) -> 
 def main() -> int:
     p = argparse.ArgumentParser(description="Test GPS serial: raw NMEA and/or parsed RMC/GGA fixes.")
     p.add_argument("--config", type=Path, default=_EDGE_ROOT / "config" / "default.yaml")
+    p.add_argument(
+        "--port",
+        type=str,
+        default=None,
+        help="Serial device (overrides gps.port in config), e.g. /dev/ttyACM0",
+    )
     p.add_argument("--raw-sec", type=float, default=10.0, help="Seconds to print raw NMEA lines (0 = skip raw)")
     p.add_argument("--parse-only", action="store_true", help="Only print parsed fixes, no raw dump")
     p.add_argument("--fixes", type=int, default=15, help="Max parsed fixes to print when not parse-only")
@@ -54,24 +67,34 @@ def main() -> int:
 
     cfg = _load_config(args.config)
     g = cfg.get("gps", {})
-    port = str(g.get("port", "/dev/ttyUSB0"))
+    port = str(args.port or g.get("port", "/dev/ttyUSB0"))
     baud = int(g.get("baud", 9600))
     timeout = float(g.get("timeout_sec", 1.0))
 
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     log = logging.getLogger("gps_test")
 
+    if not Path(port).exists():
+        log.error("Serial device not found: %s", port)
+        log.error("Candidates on this system:\n%s", _list_serial_hints())
+        log.error("Fix: plug USB GPS, set gps.port in config/default.yaml, or run with --port /dev/ttyACM0")
+        return 2
+
     if not args.parse_only and args.raw_sec > 0:
-        _raw_dump(port, baud, timeout, args.raw_sec)
+        try:
+            _raw_dump(port, baud, timeout, args.raw_sec)
+        except OSError as e:
+            log.error("Raw read failed: %s", e)
+            return 1
         print()
 
-    from gps_service.reader import GPSReader, GPSReaderError
+    from gps_service.reader import GPSReader
 
     log.info("# Parsed fixes (RMC/GGA with lat/lon) from %s @ %s", port, baud)
     try:
         reader = GPSReader(port, baud, timeout)
         reader.open()
-    except GPSReaderError as e:
+    except Exception as e:  # GPSReaderError, SerialException, permission, etc.
         log.error("Open failed: %s", e)
         return 1
     try:
