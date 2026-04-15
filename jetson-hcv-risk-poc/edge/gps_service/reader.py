@@ -43,15 +43,16 @@ def _parse_nmea_coord(raw: str, hemi: str) -> Optional[float]:
 
 
 _rmc = re.compile(
-    r"^\$(?:GP|GN)RMC,"
+    r"^\$(?:GP|GN|GL|GA)RMC,"
     r"([^,]*),([AV]),"
     r"([^,]*),([NS]),"
     r"([^,]*),([EW]),"
 )
 
 
+# GP=GPS, GN=multi-constellation, GL=GLONASS, GA=Galileo (common on u-blox / modern USB receivers)
 _gga = re.compile(
-    r"^\$GPGGA,"
+    r"^\$(?:GP|GN|GL|GA)GGA,"
     r"[^,]*,"  # time
     r"([^,]*),([NS]),"
     r"([^,]*),([EW]),"

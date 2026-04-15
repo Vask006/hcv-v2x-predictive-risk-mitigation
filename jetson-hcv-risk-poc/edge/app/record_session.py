@@ -92,6 +92,7 @@ def _gps_thread(
             timeout = float(g.get("timeout_sec", 1.0))
             reader = GPSReader(port, baud, timeout)
             reader.open()
+            log.info("GPS serial open %s baud=%s", port, baud)
             try:
                 for fix in reader.iter_lines(max_lines=None):
                     if stop.is_set():

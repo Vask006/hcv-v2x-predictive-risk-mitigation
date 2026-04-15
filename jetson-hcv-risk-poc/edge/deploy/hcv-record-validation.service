@@ -1,0 +1,33 @@
+# One-shot: record ~30s of video then exit (clean MP4 finalize). Restart=no.
+#
+# Install on Jetson (adjust User/Group/WorkingDirectory/ExecStart paths to match your clone):
+#   chmod +x edge/deploy/hcv-record-validation-start.sh
+#   sudo cp edge/deploy/hcv-record-validation.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#
+# Before starting, stop the always-on recorder so the camera is free:
+#   sudo systemctl stop hcv-record.service
+#
+# Run validation capture:
+#   sudo systemctl start hcv-record-validation.service
+#   journalctl -u hcv-record-validation.service -f
+#
+# Recording path: edge/data/recordings/<UTC>/
+# Optional overrides: sudo cp edge/deploy/hcv-record-validation.default.example /etc/default/hcv-record-validation
+
+[Unit]
+Description=HCV one-shot validation recording (~30s, mock GPS)
+After=multi-user.target
+
+[Service]
+Type=simple
+User=isha
+Group=isha
+WorkingDirectory=/home/isha/hcv-v2x-predictive-risk-mitigation/jetson-hcv-risk-poc/edge
+Environment=PYTHONUNBUFFERED=1
+EnvironmentFile=-/etc/default/hcv-record-validation
+ExecStart=/home/isha/hcv-v2x-predictive-risk-mitigation/jetson-hcv-risk-poc/edge/deploy/hcv-record-validation-start.sh
+Restart=no
+
+[Install]
+# Not enabled by default — start manually when you want a validation clip.

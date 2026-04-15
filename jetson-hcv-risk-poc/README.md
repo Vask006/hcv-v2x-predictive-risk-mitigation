@@ -87,6 +87,19 @@ sudo systemctl start hcv-record.service
 
 Logs: `journalctl -u hcv-record.service -f` · Stop until next boot: `sudo systemctl stop hcv-record.service`
 
+**Validation clip (~30s, one-shot):** use `edge/deploy/hcv-record-validation.service` so recording **stops cleanly** (MP4 `moov` written). It uses `--mock-gps` and `Restart=no` (does not loop like the main service).
+
+```bash
+chmod +x edge/deploy/hcv-record-validation-start.sh
+sudo cp edge/deploy/hcv-record-validation.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl stop hcv-record.service    # free the camera if the main service is running
+sudo systemctl start hcv-record-validation.service
+journalctl -u hcv-record-validation.service -f
+```
+
+Optional: `/etc/default/hcv-record-validation` from `edge/deploy/hcv-record-validation.default.example` to change `HCV_DURATION_SEC` or `HCV_CONFIG`.
+
 On Jetson, prefer system OpenCV with GStreamer support where needed; `opencv-python-headless` is for convenience on dev PCs.
 
 ### Cloud API — local (SQLite)
