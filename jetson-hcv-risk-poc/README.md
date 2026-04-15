@@ -67,6 +67,7 @@ python -m app.record_session --config config/default.yaml --mock-gps
 ```
 
 Use real USB GPS (set `gps.port` in config): omit `--mock-gps`. Stop with Ctrl+C or set `recording.duration_sec` in YAML.
+For production/vehicle runs, set `recording.gps_optional: false` to fail fast if GPS serial is missing.
 
 ### Auto-start recording on boot (Jetson)
 
@@ -75,7 +76,7 @@ Each run creates a **new UTC timestamp folder** under `recording.output_base` (s
 1. Clone repo once on the board, create venv, `pip install -r edge/requirements.txt`, and set `gps.port` / `recording.output_base` as needed.
 2. Make the start script executable: `chmod +x edge/deploy/hcv-record-start.sh`
 3. Edit `edge/deploy/hcv-record.service`: set `User`, `Group`, `WorkingDirectory`, and `ExecStart` to your **absolute** paths (example uses user `isha`).
-4. Optional: copy `edge/deploy/hcv-record.default.example` to `/etc/default/hcv-record` to tune `HCV_BOOT_DELAY_SEC` (default **15** seconds so USB camera/GPS can enumerate) and `HCV_CONFIG`.
+4. Optional: copy `edge/deploy/hcv-record.default.example` to `/etc/default/hcv-record` to tune `HCV_BOOT_DELAY_SEC` (default **30** seconds; use **45** on unstable inverter power so USB camera/GPS can enumerate) and `HCV_CONFIG`.
 5. Install and enable:
 
 ```bash
@@ -86,6 +87,49 @@ sudo systemctl start hcv-record.service
 ```
 
 Logs: `journalctl -u hcv-record.service -f` · Stop until next boot: `sudo systemctl stop hcv-record.service`
+
+### Auto-start with separate camera and GPS services (recommended)
+
+If you want failures isolated (camera failure does not stop GPS, GPS failure does not stop camera), use two systemd services.
+
+1. Make start scripts executable:
+
+```bash
+chmod +x edge/deploy/hcv-camera-record-start.sh
+chmod +x edge/deploy/hcv-gps-record-start.sh
+```
+
+2. Edit both service files for your absolute paths:
+   - `edge/deploy/hcv-camera-record.service`
+   - `edge/deploy/hcv-gps-record.service`
+
+3. Optional: copy defaults and tune `HCV_BOOT_DELAY_SEC` (30-45 on vehicle inverter power):
+
+```bash
+sudo cp edge/deploy/hcv-camera-record.default.example /etc/default/hcv-camera-record
+sudo cp edge/deploy/hcv-gps-record.default.example /etc/default/hcv-gps-record
+```
+
+4. Install and enable both units:
+
+```bash
+sudo cp edge/deploy/hcv-camera-record.service /etc/systemd/system/
+sudo cp edge/deploy/hcv-gps-record.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable hcv-camera-record.service
+sudo systemctl enable hcv-gps-record.service
+sudo systemctl start hcv-camera-record.service
+sudo systemctl start hcv-gps-record.service
+```
+
+5. Operate and inspect independently:
+
+```bash
+journalctl -u hcv-camera-record.service -f
+journalctl -u hcv-gps-record.service -f
+sudo systemctl restart hcv-camera-record.service
+sudo systemctl restart hcv-gps-record.service
+```
 
 **Validation clip (~30s, one-shot):** use `edge/deploy/hcv-record-validation.service` so recording **stops cleanly** (MP4 `moov` written). It uses `--mock-gps` and `Restart=no` (does not loop like the main service).
 

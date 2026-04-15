@@ -1,4 +1,4 @@
-# Copy to /etc/default/hcv-record and adjust.
+# Copy to /etc/default/hcv-camera-record and adjust.
 # Recommended in vehicle power setups: 30-45 seconds.
 # HCV_BOOT_DELAY_SEC=30
 # HCV_CONFIG=/home/isha/hcv-v2x-predictive-risk-mitigation/jetson-hcv-risk-poc/edge/config/default.yaml

@@ -33,7 +33,8 @@ recording:
   video_filename: "camera.mp4"
   gps_filename: "gps.jsonl"
   session_meta_filename: "session.json"
-  gps_optional: true
+  # Fail fast if GPS serial is missing, instead of silently recording camera-only.
+  gps_optional: false
 
 cloud:
   # Used by later phases; ingest base URL for uploader
