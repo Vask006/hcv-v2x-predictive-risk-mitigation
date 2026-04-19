@@ -40,8 +40,9 @@ recording:
   session_meta_filename: "session.json"
   # When true: never probe or record GPS (vehicle / bench camera debugging). Same as CLI --no-gps.
   camera_only: false
-  # Fail fast if GPS serial is missing, instead of silently recording camera-only.
-  gps_optional: false
+  # If true and gps.port is missing, record camera-only with a warning. If false, abort when GPS is required but missing.
+  # Set false for strict production vehicle runs (fail fast if GPS is absent).
+  gps_optional: true
 
 cloud:
   # Used by later phases; ingest base URL for uploader
