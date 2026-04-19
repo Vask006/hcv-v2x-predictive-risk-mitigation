@@ -1,4 +1,5 @@
 # Install on Jetson (edit User + paths to match your login and clone location):
+#   ExecStart uses /bin/bash so the .sh file does not need chmod +x after git pull.
 #   sudo install -m 755 deploy/hcv-record-start.sh /opt/hcv-edge/hcv-record-start.sh
 #   OR keep script inside the git repo and point ExecStart to that absolute path.
 #
@@ -21,7 +22,7 @@ User=isha
 Group=isha
 WorkingDirectory=/home/isha/hcv-v2x-predictive-risk-mitigation/jetson-hcv-risk-poc/edge
 Environment=PYTHONUNBUFFERED=1
-ExecStart=/home/isha/hcv-v2x-predictive-risk-mitigation/jetson-hcv-risk-poc/edge/deploy/hcv-record-start.sh
+ExecStart=/bin/bash /home/isha/hcv-v2x-predictive-risk-mitigation/jetson-hcv-risk-poc/edge/deploy/hcv-record-start.sh
 Restart=always
 RestartSec=15
 

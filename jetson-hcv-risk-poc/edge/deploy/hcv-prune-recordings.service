@@ -20,4 +20,4 @@ User=isha
 Group=isha
 WorkingDirectory=/home/isha/hcv-v2x-predictive-risk-mitigation/jetson-hcv-risk-poc/edge
 Environment=PYTHONUNBUFFERED=1
-ExecStart=/home/isha/hcv-v2x-predictive-risk-mitigation/jetson-hcv-risk-poc/edge/deploy/hcv-prune-recordings.sh
+ExecStart=/bin/bash /home/isha/hcv-v2x-predictive-risk-mitigation/jetson-hcv-risk-poc/edge/deploy/hcv-prune-recordings.sh

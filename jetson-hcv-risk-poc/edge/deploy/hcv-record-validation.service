@@ -26,7 +26,7 @@ Group=isha
 WorkingDirectory=/home/isha/hcv-v2x-predictive-risk-mitigation/jetson-hcv-risk-poc/edge
 Environment=PYTHONUNBUFFERED=1
 EnvironmentFile=-/etc/default/hcv-record-validation
-ExecStart=/home/isha/hcv-v2x-predictive-risk-mitigation/jetson-hcv-risk-poc/edge/deploy/hcv-record-validation-start.sh
+ExecStart=/bin/bash /home/isha/hcv-v2x-predictive-risk-mitigation/jetson-hcv-risk-poc/edge/deploy/hcv-record-validation-start.sh
 Restart=no
 
 [Install]

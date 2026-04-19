@@ -19,7 +19,7 @@ Group=isha
 WorkingDirectory=/home/isha/hcv-v2x-predictive-risk-mitigation/jetson-hcv-risk-poc/edge
 Environment=PYTHONUNBUFFERED=1
 EnvironmentFile=-/etc/default/hcv-edge-runtime
-ExecStart=/home/isha/hcv-v2x-predictive-risk-mitigation/jetson-hcv-risk-poc/edge/deploy/hcv-edge-runtime-start.sh
+ExecStart=/bin/bash /home/isha/hcv-v2x-predictive-risk-mitigation/jetson-hcv-risk-poc/edge/deploy/hcv-edge-runtime-start.sh
 Restart=always
 RestartSec=15
 
