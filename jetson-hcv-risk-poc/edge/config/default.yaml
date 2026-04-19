@@ -28,6 +28,10 @@ phase0:
 # Local recording (python -m app.record_session). Paths under edge/ if relative.
 recording:
   output_base: "data/recordings"
+  # JSON lines: probe results before each session (camera/GPS open + first frame/fix).
+  connectivity_log: "data/recordings/device_connectivity.jsonl"
+  # Seconds to wait for first parsed NMEA fix (RMC/GGA) before aborting without creating a session folder.
+  gps_probe_timeout_sec: 45
   fps: 15
   duration_sec: 0
   video_filename: "camera.mp4"

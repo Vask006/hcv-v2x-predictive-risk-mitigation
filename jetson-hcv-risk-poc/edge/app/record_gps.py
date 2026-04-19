@@ -21,6 +21,12 @@ _EDGE_ROOT = Path(__file__).resolve().parent.parent
 if str(_EDGE_ROOT) not in sys.path:
     sys.path.insert(0, str(_EDGE_ROOT))
 
+from app.device_connectivity import (
+    append_connectivity_record,
+    probe_gps,
+    resolve_connectivity_log_path,
+)
+
 
 def _load_config(path: Path) -> dict:
     with path.open("r", encoding="utf-8") as f:
@@ -56,17 +62,49 @@ def main() -> int:
     duration_sec = float(rec.get("duration_sec", 0))
     if args.duration_sec is not None:
         duration_sec = float(args.duration_sec)
+    gps_probe_timeout_sec = float(rec.get("gps_probe_timeout_sec", 45))
     gps_name = str(rec.get("gps_filename", "gps.jsonl"))
     meta_name = str(rec.get("session_meta_filename", "session.json"))
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     log = logging.getLogger("record-gps")
 
+    connectivity_log = resolve_connectivity_log_path(_EDGE_ROOT, cfg)
+    device_id = cfg.get("device_id", "unknown")
+    append_connectivity_record(
+        connectivity_log,
+        {
+            "event": "record_gps_attempt",
+            "device_id": device_id,
+            "mock_gps": args.mock_gps,
+        },
+    )
+    gps_ok, gps_detail = probe_gps(cfg, args.mock_gps, gps_probe_timeout_sec)
+    append_connectivity_record(
+        connectivity_log,
+        {"event": "gps_probe", "ok": gps_ok, "detail": gps_detail, "device_id": device_id},
+    )
+    if not gps_ok:
+        append_connectivity_record(
+            connectivity_log,
+            {
+                "event": "session_aborted",
+                "reason": "gps_probe_failed",
+                "detail": gps_detail,
+                "device_id": device_id,
+            },
+        )
+        log.error("GPS not ready (%s). No session folder created.", gps_detail)
+        return 1
+
     session = _session_dir(out_base)
+    append_connectivity_record(
+        connectivity_log,
+        {"event": "session_folder_created", "session_dir": str(session), "device_id": device_id},
+    )
+
     meta_path = session / meta_name
     gps_path = session / gps_name
-
-    device_id = cfg.get("device_id", "unknown")
     started = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
     meta_path.write_text(
         json.dumps(

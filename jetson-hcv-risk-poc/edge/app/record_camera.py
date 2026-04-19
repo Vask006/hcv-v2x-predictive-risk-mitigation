@@ -21,6 +21,12 @@ _EDGE_ROOT = Path(__file__).resolve().parent.parent
 if str(_EDGE_ROOT) not in sys.path:
     sys.path.insert(0, str(_EDGE_ROOT))
 
+from app.device_connectivity import (
+    append_connectivity_record,
+    probe_camera,
+    resolve_connectivity_log_path,
+)
+
 
 def _load_config(path: Path) -> dict:
     with path.open("r", encoding="utf-8") as f:
@@ -82,11 +88,38 @@ def main() -> int:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     log = logging.getLogger("record-camera")
 
+    connectivity_log = resolve_connectivity_log_path(_EDGE_ROOT, cfg)
+    device_id = cfg.get("device_id", "unknown")
+    append_connectivity_record(
+        connectivity_log,
+        {"event": "record_camera_attempt", "device_id": device_id},
+    )
+    cam_ok, cam_detail = probe_camera(cfg)
+    append_connectivity_record(
+        connectivity_log,
+        {"event": "camera_probe", "ok": cam_ok, "detail": cam_detail, "device_id": device_id},
+    )
+    if not cam_ok:
+        append_connectivity_record(
+            connectivity_log,
+            {
+                "event": "session_aborted",
+                "reason": "camera_probe_failed",
+                "detail": cam_detail,
+                "device_id": device_id,
+            },
+        )
+        log.error("Camera not ready (%s). No session folder created.", cam_detail)
+        return 1
+
     session = _session_dir(out_base)
+    append_connectivity_record(
+        connectivity_log,
+        {"event": "session_folder_created", "session_dir": str(session), "device_id": device_id},
+    )
+
     meta_path = session / meta_name
     video_path = session / video_name
-
-    device_id = cfg.get("device_id", "unknown")
     started = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
     meta_path.write_text(
         json.dumps(

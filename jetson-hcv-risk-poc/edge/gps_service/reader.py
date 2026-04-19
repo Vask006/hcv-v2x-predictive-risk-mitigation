@@ -84,6 +84,26 @@ class GPSReader:
             self._ser.close()
             self._ser = None
 
+    def wait_for_fix(self, deadline_mono: float) -> Optional[GPSFix]:
+        """Block until a parsed NMEA fix is seen or ``deadline_mono`` passes."""
+        if self._ser is None:
+            raise GPSReaderError("Serial not open")
+        ser = self._ser
+        while time.monotonic() < deadline_mono:
+            raw = ser.readline()
+            if not raw:
+                continue
+            try:
+                line = raw.decode("ascii", errors="replace").strip()
+            except Exception:
+                continue
+            mono = time.monotonic()
+            wall = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+            fix = _parse_line(line, wall, mono)
+            if fix:
+                return fix
+        return None
+
     def iter_lines(self, max_lines: Optional[int] = None) -> Iterator[GPSFix]:
         if self._ser is None:
             raise GPSReaderError("Serial not open")

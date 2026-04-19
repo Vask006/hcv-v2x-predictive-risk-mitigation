@@ -24,6 +24,13 @@ _EDGE_ROOT = Path(__file__).resolve().parent.parent
 if str(_EDGE_ROOT) not in sys.path:
     sys.path.insert(0, str(_EDGE_ROOT))
 
+from app.device_connectivity import (
+    append_connectivity_record,
+    probe_camera,
+    probe_gps,
+    resolve_connectivity_log_path,
+)
+
 
 def _load_config(path: Path) -> dict:
     with path.open("r", encoding="utf-8") as f:
@@ -136,12 +143,97 @@ def main() -> int:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     log = logging.getLogger("record")
 
+    if not args.no_gps and not args.mock_gps and sys.platform != "win32":
+        g = cfg.get("gps", {})
+        port = Path(str(g.get("port", "/dev/ttyUSB0")))
+        if not port.exists() and rec.get("gps_optional", True):
+            log.warning(
+                "GPS port %s missing — continuing camera-only. Use --mock-gps to log fake GPS.",
+                port,
+            )
+            args.no_gps = True
+
+    if args.no_camera and args.no_gps:
+        log.error("Nothing to record: use camera and/or GPS.")
+        return 2
+
+    connectivity_log = resolve_connectivity_log_path(_EDGE_ROOT, cfg)
+    gps_probe_timeout_sec = float(rec.get("gps_probe_timeout_sec", 45))
+    device_id = cfg.get("device_id", "unknown")
+
+    append_connectivity_record(
+        connectivity_log,
+        {
+            "event": "record_session_attempt",
+            "device_id": device_id,
+            "no_camera": args.no_camera,
+            "no_gps": args.no_gps,
+            "mock_gps": args.mock_gps,
+        },
+    )
+
+    need_camera = not args.no_camera
+    need_gps = not args.no_gps
+
+    if need_camera:
+        cam_ok, cam_detail = probe_camera(cfg)
+        append_connectivity_record(
+            connectivity_log,
+            {"event": "camera_probe", "ok": cam_ok, "detail": cam_detail, "device_id": device_id},
+        )
+        log.info("camera probe: %s — %s", cam_ok, cam_detail)
+        if not cam_ok:
+            append_connectivity_record(
+                connectivity_log,
+                {
+                    "event": "session_aborted",
+                    "reason": "camera_probe_failed",
+                    "detail": cam_detail,
+                    "device_id": device_id,
+                },
+            )
+            log.error("Aborting: camera not ready (%s). No session folder created.", cam_detail)
+            return 1
+    else:
+        cam_ok, cam_detail = True, "skipped (--no-camera)"
+
+    if need_gps:
+        gps_ok, gps_detail = probe_gps(cfg, args.mock_gps, gps_probe_timeout_sec)
+        append_connectivity_record(
+            connectivity_log,
+            {"event": "gps_probe", "ok": gps_ok, "detail": gps_detail, "device_id": device_id},
+        )
+        log.info("GPS probe: %s — %s", gps_ok, gps_detail)
+        if not gps_ok:
+            append_connectivity_record(
+                connectivity_log,
+                {
+                    "event": "session_aborted",
+                    "reason": "gps_probe_failed",
+                    "detail": gps_detail,
+                    "device_id": device_id,
+                },
+            )
+            log.error("Aborting: GPS not ready (%s). No session folder created.", gps_detail)
+            return 1
+    else:
+        gps_ok, gps_detail = True, "skipped (--no-gps)"
+
     session = _session_dir(out_base)
+    append_connectivity_record(
+        connectivity_log,
+        {
+            "event": "session_folder_created",
+            "session_dir": str(session),
+            "camera_ok": cam_ok,
+            "gps_ok": gps_ok,
+            "device_id": device_id,
+        },
+    )
+
     meta_path = session / meta_name
     video_path = session / video_name
     gps_path = session / gps_name
-
-    device_id = cfg.get("device_id", "unknown")
     started = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
     meta_path.write_text(
         json.dumps(
@@ -169,20 +261,6 @@ def main() -> int:
     signal.signal(signal.SIGINT, handle_sig)
     if hasattr(signal, "SIGTERM"):
         signal.signal(signal.SIGTERM, handle_sig)
-
-    if not args.no_gps and not args.mock_gps and sys.platform != "win32":
-        g = cfg.get("gps", {})
-        port = Path(str(g.get("port", "/dev/ttyUSB0")))
-        if not port.exists() and rec.get("gps_optional", True):
-            log.warning(
-                "GPS port %s missing — continuing camera-only. Use --mock-gps to log fake GPS.",
-                port,
-            )
-            args.no_gps = True
-
-    if args.no_camera and args.no_gps:
-        log.error("Nothing to record: use camera and/or GPS.")
-        return 2
 
     if not args.no_gps:
         gps_thread = threading.Thread(
