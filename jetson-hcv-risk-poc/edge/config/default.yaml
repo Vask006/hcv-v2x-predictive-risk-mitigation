@@ -42,8 +42,8 @@ recording:
   session_meta_filename: "session.json"
   # When true: never probe or record GPS (vehicle / bench camera debugging). Same as CLI --no-gps.
   camera_only: false
-  # If true and gps.port is missing, record camera-only with a warning. If false, abort when GPS is required but missing.
-  # Set false for strict production vehicle runs (fail fast if GPS is absent).
+  # If true: missing GPS port or failed GPS probe (no fix in time) → camera-only instead of aborting.
+  # If false: abort when GPS is required but port missing or probe fails (strict vehicle runs).
   gps_optional: true
   # Delete video files (mp4/avi) older than this many days under output_base; used by app.prune_recordings + systemd timer. 0 = never delete.
   retention_days_video: 3

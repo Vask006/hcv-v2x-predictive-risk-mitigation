@@ -222,16 +222,30 @@ def main() -> int:
         )
         log.info("GPS probe: %s — %s", gps_ok, gps_detail)
         if not gps_ok:
-            _append_gps(
-                {
-                    "event": "session_aborted",
-                    "reason": "gps_probe_failed",
-                    "detail": gps_detail,
-                    "device_id": device_id,
-                },
-            )
-            log.error("Aborting: GPS not ready (%s). No session folder created.", gps_detail)
-            return 1
+            if rec.get("gps_optional", True):
+                log.warning(
+                    "GPS not ready (%s) — continuing camera-only (recording.gps_optional).",
+                    gps_detail,
+                )
+                _append_gps(
+                    {
+                        "event": "gps_probe_fallback_camera_only",
+                        "detail": gps_detail,
+                        "device_id": device_id,
+                    },
+                )
+                args.no_gps = True
+            else:
+                _append_gps(
+                    {
+                        "event": "session_aborted",
+                        "reason": "gps_probe_failed",
+                        "detail": gps_detail,
+                        "device_id": device_id,
+                    },
+                )
+                log.error("Aborting: GPS not ready (%s). No session folder created.", gps_detail)
+                return 1
     else:
         gps_ok, gps_detail = True, "skipped (--no-gps)"
 
