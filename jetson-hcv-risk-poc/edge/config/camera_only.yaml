@@ -1,0 +1,76 @@
+# Same as default.yaml with GPS recording disabled (bench / vehicle camera debugging).
+# Use: python -m app.record_session --config config/camera_only.yaml
+# Jetson: set HCV_CONFIG to this path in /etc/default/hcv-record (or HCV_CAMERA_ONLY=1 with default.yaml).
+
+device_id: "edge-camera-only"
+
+log_utc: true
+
+camera:
+  backend: "opencv"
+  index: 0
+
+gps:
+  port: "/dev/ttyUSB0"
+  baud: 9600
+  timeout_sec: 1.0
+
+phase0:
+  frames_to_log: 5
+  gps_lines_to_log: 10
+  frame_interval_sec: 0.5
+
+recording:
+  output_base: "data/recordings"
+  connectivity_log_camera: "data/recordings/device_connectivity_camera.jsonl"
+  connectivity_log_gps: "data/recordings/device_connectivity_gps.jsonl"
+  gps_probe_timeout_sec: 45
+  fps: 15
+  duration_sec: 0
+  video_filename: "camera.mp4"
+  gps_filename: "gps.jsonl"
+  session_meta_filename: "session.json"
+  camera_only: true
+  gps_optional: true
+
+cloud:
+  ingest_base_url: "http://127.0.0.1:8000"
+  api_key: ""
+
+phase1_runtime:
+  interval_sec: 2.0
+  duration_sec: 0
+  min_emit_band: "low"
+  camera_healthy_age_sec: 20
+  perception_mock:
+    base_distance_m: 20
+    distance_wave_m: 9
+    lane_wave: 0.55
+    closure_wave_mps: 6
+    scenario_speed_multiplier: 1.0
+
+context_mock:
+  base_weather_risk: 0.22
+  base_traffic_risk: 0.30
+  base_road_risk: 0.18
+  risk_wave_amplitude: 0.20
+  scenario_speed_multiplier: 1.0
+
+risk_engine:
+  bands:
+    low: 0.20
+    medium: 0.45
+    high: 0.70
+    critical: 0.85
+  weights:
+    proximity: 0.35
+    lane_departure: 0.20
+    closure_rate: 0.20
+    context: 0.20
+    gps_penalty: 0.05
+
+uploader:
+  enabled: true
+  path: "/v1/events"
+  timeout_sec: 5.0
+  max_batch: 20

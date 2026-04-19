@@ -5,6 +5,8 @@ Run from `edge/`:
   python -m app.record_session --config config/default.yaml
 
 Stop with Ctrl+C or after duration_sec (config). Use --mock-gps if no serial GPS.
+Set recording.camera_only: true in YAML (or HCV_CAMERA_ONLY=1 via
+deploy/hcv-record-start.sh) to skip GPS probe and recording — same as --no-gps.
 """
 from __future__ import annotations
 
@@ -28,7 +30,7 @@ from app.device_connectivity import (
     append_connectivity_record,
     probe_camera,
     probe_gps,
-    resolve_connectivity_log_path,
+    resolve_connectivity_log_paths,
 )
 
 
@@ -127,6 +129,8 @@ def main() -> int:
 
     cfg = _load_config(args.config)
     rec = cfg.get("recording", {})
+    if bool(rec.get("camera_only", False)):
+        args.no_gps = True
     out_base = Path(rec.get("output_base", str(_EDGE_ROOT / "data" / "recordings")))
     out_base = out_base.expanduser()
     if not out_base.is_absolute():
@@ -157,34 +161,41 @@ def main() -> int:
         log.error("Nothing to record: use camera and/or GPS.")
         return 2
 
-    connectivity_log = resolve_connectivity_log_path(_EDGE_ROOT, cfg)
+    connectivity_camera, connectivity_gps = resolve_connectivity_log_paths(_EDGE_ROOT, cfg)
     gps_probe_timeout_sec = float(rec.get("gps_probe_timeout_sec", 45))
     device_id = cfg.get("device_id", "unknown")
 
-    append_connectivity_record(
-        connectivity_log,
-        {
-            "event": "record_session_attempt",
-            "device_id": device_id,
-            "no_camera": args.no_camera,
-            "no_gps": args.no_gps,
-            "mock_gps": args.mock_gps,
-        },
-    )
+    def _append_cam(rec_: dict) -> None:
+        append_connectivity_record(connectivity_camera, rec_)
+
+    def _append_gps(rec_: dict) -> None:
+        append_connectivity_record(connectivity_gps, rec_)
+
+    def _append_both(rec_: dict) -> None:
+        _append_cam(rec_)
+        _append_gps(rec_)
+
+    attempt_row = {
+        "event": "record_session_attempt",
+        "device_id": device_id,
+        "no_camera": args.no_camera,
+        "no_gps": args.no_gps,
+        "mock_gps": args.mock_gps,
+        "camera_only_config": bool(rec.get("camera_only", False)),
+    }
+    _append_both(attempt_row)
 
     need_camera = not args.no_camera
     need_gps = not args.no_gps
 
     if need_camera:
         cam_ok, cam_detail = probe_camera(cfg)
-        append_connectivity_record(
-            connectivity_log,
+        _append_cam(
             {"event": "camera_probe", "ok": cam_ok, "detail": cam_detail, "device_id": device_id},
         )
         log.info("camera probe: %s — %s", cam_ok, cam_detail)
         if not cam_ok:
-            append_connectivity_record(
-                connectivity_log,
+            _append_cam(
                 {
                     "event": "session_aborted",
                     "reason": "camera_probe_failed",
@@ -199,14 +210,12 @@ def main() -> int:
 
     if need_gps:
         gps_ok, gps_detail = probe_gps(cfg, args.mock_gps, gps_probe_timeout_sec)
-        append_connectivity_record(
-            connectivity_log,
+        _append_gps(
             {"event": "gps_probe", "ok": gps_ok, "detail": gps_detail, "device_id": device_id},
         )
         log.info("GPS probe: %s — %s", gps_ok, gps_detail)
         if not gps_ok:
-            append_connectivity_record(
-                connectivity_log,
+            _append_gps(
                 {
                     "event": "session_aborted",
                     "reason": "gps_probe_failed",
@@ -220,8 +229,7 @@ def main() -> int:
         gps_ok, gps_detail = True, "skipped (--no-gps)"
 
     session = _session_dir(out_base)
-    append_connectivity_record(
-        connectivity_log,
+    _append_both(
         {
             "event": "session_folder_created",
             "session_dir": str(session),
@@ -244,6 +252,7 @@ def main() -> int:
                 "fps": fps,
                 "duration_sec": duration_sec,
                 "mock_gps": args.mock_gps,
+                "camera_only": bool(rec.get("camera_only", False)),
                 "session_dir": str(session),
             },
             indent=2,

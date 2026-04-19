@@ -24,7 +24,7 @@ if str(_EDGE_ROOT) not in sys.path:
 from app.device_connectivity import (
     append_connectivity_record,
     probe_gps,
-    resolve_connectivity_log_path,
+    resolve_connectivity_log_paths,
 )
 
 
@@ -69,10 +69,10 @@ def main() -> int:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     log = logging.getLogger("record-gps")
 
-    connectivity_log = resolve_connectivity_log_path(_EDGE_ROOT, cfg)
+    _connectivity_camera, connectivity_gps = resolve_connectivity_log_paths(_EDGE_ROOT, cfg)
     device_id = cfg.get("device_id", "unknown")
     append_connectivity_record(
-        connectivity_log,
+        connectivity_gps,
         {
             "event": "record_gps_attempt",
             "device_id": device_id,
@@ -81,12 +81,12 @@ def main() -> int:
     )
     gps_ok, gps_detail = probe_gps(cfg, args.mock_gps, gps_probe_timeout_sec)
     append_connectivity_record(
-        connectivity_log,
+        connectivity_gps,
         {"event": "gps_probe", "ok": gps_ok, "detail": gps_detail, "device_id": device_id},
     )
     if not gps_ok:
         append_connectivity_record(
-            connectivity_log,
+            connectivity_gps,
             {
                 "event": "session_aborted",
                 "reason": "gps_probe_failed",
@@ -99,7 +99,7 @@ def main() -> int:
 
     session = _session_dir(out_base)
     append_connectivity_record(
-        connectivity_log,
+        connectivity_gps,
         {"event": "session_folder_created", "session_dir": str(session), "device_id": device_id},
     )
 

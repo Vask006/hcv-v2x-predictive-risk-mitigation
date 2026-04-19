@@ -69,6 +69,8 @@ python -m app.record_session --config config/default.yaml --mock-gps
 Use real USB GPS (set `gps.port` in config): omit `--mock-gps`. Stop with Ctrl+C or set `recording.duration_sec` in YAML.
 For production/vehicle runs, set `recording.gps_optional: false` to fail fast if GPS serial is missing.
 
+**Camera only (no GPS probe, no `gps.jsonl`):** `python -m app.record_session --config config/camera_only.yaml` or `--no-gps`, or set `recording.camera_only: true` in your YAML. On the Jetson, either point `HCV_CONFIG` at `config/camera_only.yaml` in `/etc/default/hcv-record`, or set `HCV_CAMERA_ONLY=1` there while keeping `HCV_CONFIG` on `default.yaml`. Prefer the dedicated `hcv-camera-record.service` if you want GPS and camera as separate systemd units.
+
 ### Auto-start recording on boot (Jetson)
 
 Each run creates a **new UTC timestamp folder** under `recording.output_base` (see `edge/config/default.yaml`). GPS rows include `wall_utc` per fix in `gps.jsonl`.

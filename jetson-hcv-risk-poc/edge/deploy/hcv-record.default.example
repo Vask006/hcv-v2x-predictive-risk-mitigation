@@ -2,3 +2,7 @@
 # Recommended in vehicle power setups: 30-45 seconds.
 # HCV_BOOT_DELAY_SEC=30
 # HCV_CONFIG=/home/isha/hcv-v2x-predictive-risk-mitigation/jetson-hcv-risk-poc/edge/config/default.yaml
+#
+# Camera-only debugging (no GPS serial, no mock GPS file):
+#   HCV_CAMERA_ONLY=1
+# or point HCV_CONFIG at .../edge/config/camera_only.yaml (recording.camera_only: true).

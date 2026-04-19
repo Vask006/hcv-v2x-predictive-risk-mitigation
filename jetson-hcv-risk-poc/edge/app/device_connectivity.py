@@ -12,13 +12,36 @@ def utc_now_iso() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
 
 
-def resolve_connectivity_log_path(edge_root: Path, cfg: dict[str, Any]) -> Path:
-    rec = cfg.get("recording", {})
-    rel = str(rec.get("connectivity_log", "data/recordings/device_connectivity.jsonl"))
+def _resolve_under_edge(edge_root: Path, rel: str) -> Path:
     p = Path(rel).expanduser()
     if not p.is_absolute():
         p = (edge_root / p).resolve()
     return p
+
+
+def resolve_connectivity_log_paths(edge_root: Path, cfg: dict[str, Any]) -> tuple[Path, Path]:
+    """Return (camera connectivity jsonl path, gps connectivity jsonl path)."""
+    rec = cfg.get("recording", {})
+    cam_rel = rec.get("connectivity_log_camera")
+    gps_rel = rec.get("connectivity_log_gps")
+    legacy = rec.get("connectivity_log")
+
+    if cam_rel and gps_rel:
+        return _resolve_under_edge(edge_root, str(cam_rel)), _resolve_under_edge(edge_root, str(gps_rel))
+    if legacy and not cam_rel and not gps_rel:
+        leg = _resolve_under_edge(edge_root, str(legacy))
+        parent = leg.parent
+        stem = leg.stem
+        suf = leg.suffix or ".jsonl"
+        return parent / f"{stem}_camera{suf}", parent / f"{stem}_gps{suf}"
+    default_cam = str(cam_rel or "data/recordings/device_connectivity_camera.jsonl")
+    default_gps = str(gps_rel or "data/recordings/device_connectivity_gps.jsonl")
+    return _resolve_under_edge(edge_root, default_cam), _resolve_under_edge(edge_root, default_gps)
+
+
+def resolve_connectivity_log_path(edge_root: Path, cfg: dict[str, Any]) -> Path:
+    """Backward compatible: camera-side connectivity log (prefer resolve_connectivity_log_paths)."""
+    return resolve_connectivity_log_paths(edge_root, cfg)[0]
 
 
 def append_connectivity_record(path: Path, record: dict[str, Any]) -> None:

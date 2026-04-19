@@ -24,7 +24,7 @@ if str(_EDGE_ROOT) not in sys.path:
 from app.device_connectivity import (
     append_connectivity_record,
     probe_camera,
-    resolve_connectivity_log_path,
+    resolve_connectivity_log_paths,
 )
 
 
@@ -88,20 +88,20 @@ def main() -> int:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     log = logging.getLogger("record-camera")
 
-    connectivity_log = resolve_connectivity_log_path(_EDGE_ROOT, cfg)
+    connectivity_camera, _connectivity_gps = resolve_connectivity_log_paths(_EDGE_ROOT, cfg)
     device_id = cfg.get("device_id", "unknown")
     append_connectivity_record(
-        connectivity_log,
+        connectivity_camera,
         {"event": "record_camera_attempt", "device_id": device_id},
     )
     cam_ok, cam_detail = probe_camera(cfg)
     append_connectivity_record(
-        connectivity_log,
+        connectivity_camera,
         {"event": "camera_probe", "ok": cam_ok, "detail": cam_detail, "device_id": device_id},
     )
     if not cam_ok:
         append_connectivity_record(
-            connectivity_log,
+            connectivity_camera,
             {
                 "event": "session_aborted",
                 "reason": "camera_probe_failed",
@@ -114,7 +114,7 @@ def main() -> int:
 
     session = _session_dir(out_base)
     append_connectivity_record(
-        connectivity_log,
+        connectivity_camera,
         {"event": "session_folder_created", "session_dir": str(session), "device_id": device_id},
     )
 

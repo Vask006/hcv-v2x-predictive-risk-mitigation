@@ -28,8 +28,9 @@ phase0:
 # Local recording (python -m app.record_session). Paths under edge/ if relative.
 recording:
   output_base: "data/recordings"
-  # JSON lines: probe results before each session (camera/GPS open + first frame/fix).
-  connectivity_log: "data/recordings/device_connectivity.jsonl"
+  # JSON lines: probe results and session lifecycle (split so camera and GPS services do not contend on one file).
+  connectivity_log_camera: "data/recordings/device_connectivity_camera.jsonl"
+  connectivity_log_gps: "data/recordings/device_connectivity_gps.jsonl"
   # Seconds to wait for first parsed NMEA fix (RMC/GGA) before aborting without creating a session folder.
   gps_probe_timeout_sec: 45
   fps: 15
@@ -37,6 +38,8 @@ recording:
   video_filename: "camera.mp4"
   gps_filename: "gps.jsonl"
   session_meta_filename: "session.json"
+  # When true: never probe or record GPS (vehicle / bench camera debugging). Same as CLI --no-gps.
+  camera_only: false
   # Fail fast if GPS serial is missing, instead of silently recording camera-only.
   gps_optional: false
 
