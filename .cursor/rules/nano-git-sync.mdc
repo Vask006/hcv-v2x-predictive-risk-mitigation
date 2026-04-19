@@ -1,27 +1,28 @@
 ---
-description: Deploy edge changes to the Jetson Nano via git push and remote pull
-globs: jetson-hcv-risk-poc/**
-alwaysApply: false
+description: After jetson-hcv-risk-poc edits, commit if needed and run git push + SSH pull on the Nano
+alwaysApply: true
 ---
 
-# Sync repo to Jetson (Nano)
+# Jetson Nano — agent runs code update
 
-When the user asks to **update the Nano**, **deploy to the board**, **sync the Jetson**, or similar, and changes are already committed (or they ask you to commit and push):
+When you use **Write**, **StrReplace**, or equivalent to change files under **`jetson-hcv-risk-poc/`**, **before you finish the turn** (unless the user explicitly said **not** to commit, **not** to push, or **not** to sync the Nano):
 
-1. From the **repository root** (the folder that contains `.git`), run the sync script so the desktop pushes and the Nano pulls:
+1. From the **repository root** (directory that contains `.git`), check git state for paths you changed under `jetson-hcv-risk-poc/`.
+2. If those changes are **not yet committed**, stage **only** the `jetson-hcv-risk-poc/` files you touched this turn, then **`git commit`** with a short imperative message (for example `edge: describe change`). Do **not** commit unrelated files the user may have edited outside your changes without their confirmation.
+3. **Run the sync script** so the desktop pushes and the Nano pulls:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File jetson-hcv-risk-poc/scripts/Sync-GitPullOnNano.ps1
 ```
 
-Override SSH target if needed:
+Override if the user uses a different SSH host or remote path:
 
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File jetson-hcv-risk-poc/scripts/Sync-GitPullOnNano.ps1 -SshHost isha@isha-desktop -RemoteRepoPath "~/hcv-v2x-predictive-risk-mitigation" -Branch main
+```text
+-SshHost user@hostname -RemoteRepoPath "~/hcv-v2x-predictive-risk-mitigation" -Branch main
 ```
 
-2. The script runs `git push` then `ssh … git pull --no-rebase`. If the pull reports divergent branches, resolve on the Nano (merge or reset) as discussed with the user.
+4. **Report** push/SSH output (success or error). If SSH or `git pull` fails (merge, auth), tell the user what failed and what to run on the Nano.
 
-3. Alternatively the user can run the Cursor task **"Sync to Nano (git push + SSH pull)"** (Command Palette → **Tasks: Run Task**).
+**Skip** this whole flow only when: the user asked for local-only / no deploy; your edits did **not** touch `jetson-hcv-risk-poc/`; or SSH/git is unavailable—in the last case, say so and stop.
 
-Do not run the sync after every small edit unless the user explicitly wants that; it pushes the current branch to `origin`.
+The user can still run the task **Tasks: Run Task → Sync to Nano (git push + SSH pull)** manually from Cursor.
