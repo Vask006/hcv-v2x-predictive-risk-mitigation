@@ -61,6 +61,19 @@ def _latest_file(pattern: str, root: Path) -> Path | None:
     return files[0]
 
 
+def _latest_camera_recording(recording_root: Path, video_filename: str) -> Path | None:
+    """Newest camera video: single ``camera.mp4`` or segmented ``camera_*.mp4`` / ``.avi``."""
+    stem = Path(video_filename).stem
+    candidates: list[Path] = []
+    for ext in (".mp4", ".avi"):
+        candidates.extend(recording_root.glob(f"**/{stem}{ext}"))
+        candidates.extend(recording_root.glob(f"**/{stem}_*{ext}"))
+    if not candidates:
+        return None
+    candidates.sort(key=lambda p: p.stat().st_mtime, reverse=True)
+    return candidates[0]
+
+
 def _read_last_json_line(path: Path) -> dict[str, Any] | None:
     try:
         lines = path.read_text(encoding="utf-8").splitlines()
@@ -85,7 +98,7 @@ def _latest_gps_fix(recording_root: Path, gps_name: str) -> dict[str, Any] | Non
 
 
 def _camera_health(recording_root: Path, video_name: str, healthy_age_sec: float) -> tuple[bool, float | None]:
-    camera_file = _latest_file(f"**/{video_name}", recording_root)
+    camera_file = _latest_camera_recording(recording_root, video_name)
     if camera_file is None:
         return False, None
     age = max(0.0, time.time() - camera_file.stat().st_mtime)

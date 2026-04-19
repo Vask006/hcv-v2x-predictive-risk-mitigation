@@ -26,18 +26,12 @@ from app.device_connectivity import (
     probe_gps,
     resolve_connectivity_log_paths,
 )
+from app.recording_paths import session_dir_with_day
 
 
 def _load_config(path: Path) -> dict:
     with path.open("r", encoding="utf-8") as f:
         return yaml.safe_load(f)
-
-
-def _session_dir(base: Path) -> Path:
-    stamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H-%M-%SZ")
-    d = base / f"{stamp}-gps"
-    d.mkdir(parents=True, exist_ok=True)
-    return d
 
 
 def main() -> int:
@@ -97,7 +91,7 @@ def main() -> int:
         log.error("GPS not ready (%s). No session folder created.", gps_detail)
         return 1
 
-    session = _session_dir(out_base)
+    session = session_dir_with_day(out_base, "-gps")
     append_connectivity_record(
         connectivity_gps,
         {"event": "session_folder_created", "session_dir": str(session), "device_id": device_id},

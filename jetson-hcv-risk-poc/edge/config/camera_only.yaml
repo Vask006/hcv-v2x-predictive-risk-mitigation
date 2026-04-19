@@ -27,11 +27,13 @@ recording:
   gps_probe_timeout_sec: 45
   fps: 15
   duration_sec: 0
+  segment_duration_sec: 60
   video_filename: "camera.mp4"
   gps_filename: "gps.jsonl"
   session_meta_filename: "session.json"
   camera_only: true
   gps_optional: true
+  retention_days_video: 3
 
 cloud:
   ingest_base_url: "http://127.0.0.1:8000"

@@ -25,7 +25,8 @@ phase0:
   gps_lines_to_log: 10
   frame_interval_sec: 0.5
 
-# Local recording (python -m app.record_session). Paths under edge/ if relative.
+# Local recording (python -m app.record_session). Relative paths are under edge/; use an
+# absolute path to write to mounted storage, e.g. Jetson SSD: "/mnt/ssd/hcv-recordings".
 recording:
   output_base: "data/recordings"
   # JSON lines: probe results and session lifecycle (split so camera and GPS services do not contend on one file).
@@ -35,6 +36,8 @@ recording:
   gps_probe_timeout_sec: 45
   fps: 15
   duration_sec: 0
+  # Split camera into multiple files every N seconds (0 = one file per session). Reduces loss on abrupt stop.
+  segment_duration_sec: 60
   video_filename: "camera.mp4"
   gps_filename: "gps.jsonl"
   session_meta_filename: "session.json"
@@ -43,6 +46,8 @@ recording:
   # If true and gps.port is missing, record camera-only with a warning. If false, abort when GPS is required but missing.
   # Set false for strict production vehicle runs (fail fast if GPS is absent).
   gps_optional: true
+  # Delete video files (mp4/avi) older than this many days under output_base; used by app.prune_recordings + systemd timer. 0 = never delete.
+  retention_days_video: 3
 
 cloud:
   # Used by later phases; ingest base URL for uploader

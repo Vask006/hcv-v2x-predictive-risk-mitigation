@@ -1,5 +1,9 @@
 """
-Record camera to a video file and GPS fixes to JSONL on local disk (Jetson / workstation).
+Record camera to video file(s) and GPS fixes to JSONL on local disk (Jetson / workstation).
+
+Output layout: ``data/recordings/<YYYY-MM-DD>/<session-UTC>/`` (one calendar-day folder).
+Optional ``recording.segment_duration_sec`` splits video into ``camera_000001.mp4``, … so an
+abrupt stop only risks truncating the current segment.
 
 Run from `edge/`:
   python -m app.record_session --config config/default.yaml
@@ -32,18 +36,12 @@ from app.device_connectivity import (
     probe_gps,
     resolve_connectivity_log_paths,
 )
+from app.recording_paths import initial_video_path, numbered_video_path, session_dir_with_day
 
 
 def _load_config(path: Path) -> dict:
     with path.open("r", encoding="utf-8") as f:
         return yaml.safe_load(f)
-
-
-def _session_dir(base: Path) -> Path:
-    stamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H-%M-%SZ")
-    d = base / stamp
-    d.mkdir(parents=True, exist_ok=True)
-    return d
 
 
 def _open_video_writer(
@@ -125,6 +123,12 @@ def main() -> int:
         default=None,
         help="Override recording.duration_sec (0 = until Ctrl+C)",
     )
+    parser.add_argument(
+        "--segment-sec",
+        type=float,
+        default=None,
+        help="Override recording.segment_duration_sec (0 = single video file; >0 = rotate segments)",
+    )
     args = parser.parse_args()
 
     cfg = _load_config(args.config)
@@ -140,6 +144,9 @@ def main() -> int:
     duration_sec = float(rec.get("duration_sec", 0))
     if args.duration_sec is not None:
         duration_sec = float(args.duration_sec)
+    segment_duration_sec = float(rec.get("segment_duration_sec", 0))
+    if args.segment_sec is not None:
+        segment_duration_sec = float(args.segment_sec)
     video_name = str(rec.get("video_filename", "camera.mp4"))
     gps_name = str(rec.get("gps_filename", "gps.jsonl"))
     meta_name = str(rec.get("session_meta_filename", "session.json"))
@@ -228,7 +235,7 @@ def main() -> int:
     else:
         gps_ok, gps_detail = True, "skipped (--no-gps)"
 
-    session = _session_dir(out_base)
+    session = session_dir_with_day(out_base)
     _append_both(
         {
             "event": "session_folder_created",
@@ -240,7 +247,7 @@ def main() -> int:
     )
 
     meta_path = session / meta_name
-    video_path = session / video_name
+    video_template = session / video_name
     gps_path = session / gps_name
     started = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
     meta_path.write_text(
@@ -251,6 +258,7 @@ def main() -> int:
                 "config": str(args.config.resolve()),
                 "fps": fps,
                 "duration_sec": duration_sec,
+                "segment_duration_sec": segment_duration_sec,
                 "mock_gps": args.mock_gps,
                 "camera_only": bool(rec.get("camera_only", False)),
                 "session_dir": str(session),
@@ -301,7 +309,10 @@ def main() -> int:
             try:
                 _meta0, frame0 = cap.read_frame()
                 h, w = frame0.shape[:2]
-                writer, actual_video_path = _open_video_writer(video_path, fps, (w, h))
+                first_path = initial_video_path(video_template, segment_duration_sec)
+                writer, actual_video_path = _open_video_writer(first_path, fps, (w, h))
+                segment_start = time.monotonic()
+                segment_idx = 1 if segment_duration_sec > 0 else 0
                 log.info("Writing video -> %s", actual_video_path)
                 writer.write(frame0)
                 frames = 1
@@ -314,6 +325,13 @@ def main() -> int:
                     if duration_sec > 0 and (time.monotonic() - t0) >= duration_sec:
                         break
                     _meta, frame = cap.read_frame()
+                    if segment_duration_sec > 0 and (time.monotonic() - segment_start) >= segment_duration_sec:
+                        writer.release()
+                        segment_idx += 1
+                        next_seg = numbered_video_path(video_template, segment_idx)
+                        writer, actual_video_path = _open_video_writer(next_seg, fps, (w, h))
+                        log.info("Rotated video segment -> %s", actual_video_path)
+                        segment_start = time.monotonic()
                     writer.write(frame)
                     frames += 1
                     now = time.monotonic()

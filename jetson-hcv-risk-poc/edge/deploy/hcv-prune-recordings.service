@@ -1,0 +1,23 @@
+# Prune camera videos older than recording.retention_days_video (see app/prune_recordings.py).
+#
+# Install (adjust User + paths):
+#   sudo cp deploy/hcv-prune-recordings.sh /opt/hcv-edge/hcv-prune-recordings.sh   # optional copy
+#   sudo chmod +x /path/to/edge/deploy/hcv-prune-recordings.sh
+#   sudo cp deploy/hcv-prune-recordings.service /etc/systemd/system/
+#   sudo cp deploy/hcv-prune-recordings.timer /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now hcv-prune-recordings.timer
+#
+# Logs: journalctl -u hcv-prune-recordings.service -n 50
+
+[Unit]
+Description=HCV prune old recording videos (mp4/avi)
+After=local-fs.target
+
+[Service]
+Type=oneshot
+User=isha
+Group=isha
+WorkingDirectory=/home/isha/hcv-v2x-predictive-risk-mitigation/jetson-hcv-risk-poc/edge
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/home/isha/hcv-v2x-predictive-risk-mitigation/jetson-hcv-risk-poc/edge/deploy/hcv-prune-recordings.sh
