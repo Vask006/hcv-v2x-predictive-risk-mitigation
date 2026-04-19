@@ -25,8 +25,7 @@ phase0:
   gps_lines_to_log: 10
   frame_interval_sec: 0.5
 
-# Local recording (python -m app.record_session). Relative paths are under edge/; use an
-# absolute path to write to mounted storage, e.g. Jetson SSD: "/mnt/ssd/hcv-recordings".
+# Local recording -> edge/data/recordings/ (relative to edge/). Override with an absolute path if needed.
 recording:
   output_base: "data/recordings"
   # JSON lines: probe results and session lifecycle (split so camera and GPS services do not contend on one file).
