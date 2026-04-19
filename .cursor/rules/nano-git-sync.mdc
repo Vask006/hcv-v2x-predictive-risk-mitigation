@@ -1,0 +1,27 @@
+---
+description: Deploy edge changes to the Jetson Nano via git push and remote pull
+globs: jetson-hcv-risk-poc/**
+alwaysApply: false
+---
+
+# Sync repo to Jetson (Nano)
+
+When the user asks to **update the Nano**, **deploy to the board**, **sync the Jetson**, or similar, and changes are already committed (or they ask you to commit and push):
+
+1. From the **repository root** (the folder that contains `.git`), run the sync script so the desktop pushes and the Nano pulls:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File jetson-hcv-risk-poc/scripts/Sync-GitPullOnNano.ps1
+```
+
+Override SSH target if needed:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File jetson-hcv-risk-poc/scripts/Sync-GitPullOnNano.ps1 -SshHost isha@isha-desktop -RemoteRepoPath "~/hcv-v2x-predictive-risk-mitigation" -Branch main
+```
+
+2. The script runs `git push` then `ssh … git pull --no-rebase`. If the pull reports divergent branches, resolve on the Nano (merge or reset) as discussed with the user.
+
+3. Alternatively the user can run the Cursor task **"Sync to Nano (git push + SSH pull)"** (Command Palette → **Tasks: Run Task**).
+
+Do not run the sync after every small edit unless the user explicitly wants that; it pushes the current branch to `origin`.
