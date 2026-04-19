@@ -10,7 +10,7 @@ Example (from repo root):
 To edit files directly on the Nano from Cursor, use Remote - SSH instead of this script.
 #>
 param(
-    [string] $SshHost = "isha@isha-desktop",
+    [string] $SshHost = "isha@10.0.0.17",
     [string] $RemoteRepoPath = "~/hcv-v2x-predictive-risk-mitigation",
     [string] $Branch = ""
 )
