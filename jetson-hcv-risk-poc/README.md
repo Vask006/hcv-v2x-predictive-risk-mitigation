@@ -2,14 +2,26 @@
 
 Predictive risk mitigation proof of concept for heavy commercial vehicles: Jetson Orin Nano edge stack plus cloud API and dashboard.
 
+## Intellectual property (main source)
+
+The **German utility model** specification (*Integrated V2X-Based Cloud-Enhanced Predictive Risk Mitigation System for HCVs*) is the **authoritative product definition** for this repository:
+
+- **[docs/patent/README.md](docs/patent/README.md)** — index and how to use these documents  
+- **[docs/patent/utility-model-specification.md](docs/patent/utility-model-specification.md)** — full specification text (abstract through claims)  
+- **[docs/patent/PHASED_IMPLEMENTATION.md](docs/patent/PHASED_IMPLEMENTATION.md)** — **phase-wise** roadmap aligned with the specification and this codebase  
+- **[docs/patent-mapping/claim-phase-matrix.md](docs/patent-mapping/claim-phase-matrix.md)** — claims ↔ phases ↔ modules (update as you implement)
+
+Implementation proceeds **by phase** (Phase 0–1 in tree today; Phases 2–5 planned—see phased doc). Legal interpretation remains with IP counsel.
+
 ## Layout
 
 | Path | Purpose |
 |------|---------|
 | `contracts/` | Shared JSON Schema (e.g. `event_v1.json`) |
 | `docs/architecture/` | System and deployment diagrams, ADRs |
+| `docs/patent/` | **Utility model specification (source of truth)** + phased implementation plan |
 | `docs/eb1a-evidence/` | Extraordinary ability evidence artifacts (summaries, exhibits index) |
-| `docs/patent-mapping/` | Claims ↔ implementation mapping notes |
+| `docs/patent-mapping/` | Claims ↔ implementation mapping (see `claim-phase-matrix.md`) |
 | `docs/scenarios/` | Test and demo scenarios |
 | `docs/demo-script/` | Step-by-step demo narration |
 | `edge/camera_service/` | Camera capture / GStreamer or DeepStream adapters |

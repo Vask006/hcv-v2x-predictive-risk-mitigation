@@ -1,5 +1,7 @@
 # Phase 1 POC Architecture
 
+**IP context:** This phase implements part of the roadmap in [docs/patent/PHASED_IMPLEMENTATION.md](docs/patent/PHASED_IMPLEMENTATION.md) (utility model: [docs/patent/utility-model-specification.md](docs/patent/utility-model-specification.md)).
+
 ## Product Summary
 
 This POC targets a practical closed-loop safety workflow for heavy commercial vehicles:
