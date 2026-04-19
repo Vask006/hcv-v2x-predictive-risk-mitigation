@@ -21,13 +21,13 @@ $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $repoRoot = Resolve-Path (Join-Path $scriptDir "..\..")
 Set-Location $repoRoot
 if (-not (Test-Path ".git")) {
-    Write-Error "No .git at $repoRoot — adjust script path if your layout differs."
+    Write-Error "No .git at $repoRoot - adjust script path if your layout differs."
 }
 
 if (-not $Branch) {
     $Branch = (git rev-parse --abbrev-ref HEAD).Trim()
     if ($Branch -eq "HEAD") {
-        Write-Error "Detached HEAD — checkout a branch or pass -Branch."
+        Write-Error "Detached HEAD - checkout a branch or pass -Branch."
     }
 }
 
