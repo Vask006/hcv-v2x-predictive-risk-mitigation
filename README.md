@@ -16,27 +16,39 @@ The goal is to move from reactive vehicle safety to proactive and cooperative ri
 
 ## Current Status
 
-This repository is currently in early proof-of-concept setup.
+This repository is no longer just a concept scaffold. It now contains:
 
-### Implemented
+- a **working Jetson-based POC baseline** under `jetson-hcv-risk-poc/`
+- **real camera and GPS capture paths** used for on-device and in-vehicle testing
+- **extracted shared services** under `services/` for camera, GPS, risk, pipeline, and cloud bridging
+- **migration and refactor documentation** describing how the old runtime and new service-oriented structure are being unified
 
-- repository structure aligned to major invention modules
-- architecture and Phase 1 documentation
-- service placeholder modules
-- sample event payloads for demo and design work
+### Working Baseline
 
-### In Progress
+The current operational baseline remains:
 
-- GPS ingestion service
-- camera ingestion service
-- baseline risk engine
-- cloud event API
+- `jetson-hcv-risk-poc/edge/...`
+- queue and upload flow
+- deployment scripts and systemd units
+- cloud ingest API under `jetson-hcv-risk-poc/cloud/api`
 
-### Simulated in Phase 1
+### Shared / Extracted Services
 
-- V2V and V2I cooperative context
-- weather and infrastructure hazard signals
-- selected fleet-side visibility flows
+The repo now also includes:
+
+- `services/camera-service`
+- `services/gps-service`
+- `services/risk-engine`
+- `services/pipeline`
+- `services/cloud-api`
+- `services/shared`
+
+### Current Unification State
+
+- camera path is already bridged into shared service code where safe
+- GPS path is already bridged into shared service code where safe
+- risk-engine extraction is implemented, but full runtime unification is still in progress
+- the old Jetson runtime remains the safest operational path while service reuse expands incrementally
 
 ## Problem Statement
 
@@ -91,27 +103,74 @@ This repository represents a patent-aligned proof-of-concept workspace and does 
 ├── docs/
 │   ├── architecture/
 │   ├── demo/
-│   └── patent-mapping/
+│   ├── patent-mapping/
+│   ├── current-jetson-poc-status.md
+│   ├── service-migration-plan.md
+│   ├── refactor-status.md
+│   └── phase1-extraction-summary.md
+├── data/
+│   └── sample-events/
+├── outputs/
 ├── services/
 │   ├── camera-service/
 │   ├── gps-service/
-│   ├── telemetry-service/
 │   ├── risk-engine/
-│   ├── v2x-simulator/
+│   ├── pipeline/
 │   ├── cloud-api/
-│   └── dashboard/
-└── data/
-    └── sample-events/
+│   └── shared/
+└── jetson-hcv-risk-poc/
+    ├── edge/
+    ├── cloud/
+    ├── contracts/
+    ├── samples/
+    ├── tests/
+    └── docs/
 ```
+
+## Architecture State Today
+
+The repo currently has two intentionally overlapping layers:
+
+### 1. Proven Jetson Runtime Layer
+This is the currently trusted operational path.
+
+- recording and capture
+- queue and upload
+- systemd deployment units
+- cloud ingest API contract
+
+### 2. Extracted Service Layer
+This is the modularization and unification path.
+
+- reusable camera and GPS services
+- reusable rule-based risk engine
+- local event pipeline
+- cloud adapter for current API contract
+
+This transition state is temporary by design. The strategy is to unify the old runtime with the new services incrementally, without breaking the proven Jetson workflow.
 
 ## Getting Started
 
-1. Clone the repository.
-2. Review the Phase 1 scope in [`docs/phase-1-poc-scope.md`](docs/phase-1-poc-scope.md).
-3. Review the architecture in [`docs/architecture/architecture-diagram.md`](docs/architecture/architecture-diagram.md).
-4. Review the claim mapping in [`docs/patent-mapping/claim-to-poc-mapping.md`](docs/patent-mapping/claim-to-poc-mapping.md).
-5. Inspect the sample event payloads under `data/sample-events/`.
-6. Begin implementation with the `gps-service`, `camera-service`, `risk-engine`, and `cloud-api` modules.
+Choose one of these paths depending on what you want to do.
+
+### Path A — Understand the current architecture
+1. Review the Phase 1 scope in [`docs/phase-1-poc-scope.md`](docs/phase-1-poc-scope.md).
+2. Review the architecture in [`docs/architecture/architecture-diagram.md`](docs/architecture/architecture-diagram.md).
+3. Review the current migration state in:
+   - [`docs/current-jetson-poc-status.md`](docs/current-jetson-poc-status.md)
+   - [`docs/service-migration-plan.md`](docs/service-migration-plan.md)
+   - [`docs/refactor-status.md`](docs/refactor-status.md)
+   - [`docs/phase1-extraction-summary.md`](docs/phase1-extraction-summary.md)
+
+### Path B — Run the extracted Phase 1 service pipeline locally
+1. Inspect `services/pipeline/`
+2. Review `docs/run-local-phase1.md`
+3. Run the mock/local verification path described there
+
+### Path C — Work with the existing Jetson baseline
+1. Go to `jetson-hcv-risk-poc/`
+2. Review `jetson-hcv-risk-poc/README.md`
+3. Use the documented Jetson runtime, recording, and cloud API steps from that subtree
 
 ## Phase 1 POC Scope
 
@@ -123,6 +182,7 @@ Phase 1 is intentionally narrow and demoable.
 - camera feed ingestion or simulation
 - normalized event model for edge inputs
 - local risk scoring based on simple rules and thresholds
+- queueable/uploadable edge risk events
 - cloud/event API ingestion
 - simulated V2X and environmental signals
 - dashboard-ready output or structured logs
@@ -136,17 +196,31 @@ Phase 1 is intentionally narrow and demoable.
 - large-scale fleet orchestration
 - regulatory-grade audit workflows
 
-## Current Implementation Intent
+## Current Implementation Layout
 
-This repository is being organized so each major module can evolve independently:
+### Jetson Baseline
 
-- `services/camera-service` handles frame capture and metadata extraction
-- `services/gps-service` handles location, speed, route, and time signals
-- `services/telemetry-service` normalizes edge events
-- `services/risk-engine` computes risk scores and hazard classifications
-- `services/v2x-simulator` injects cooperative safety messages
-- `services/cloud-api` receives and stores events for downstream analytics
-- `services/dashboard` visualizes trips, risk states, and alerts
+`jetson-hcv-risk-poc` currently contains the working baseline for:
+
+- camera capture
+- GPS ingestion
+- session recording
+- edge runtime
+- event queueing
+- cloud upload
+- cloud API
+- deployment and operational scripts
+
+### Shared Services
+
+The extracted services are being positioned as the long-term reusable modules:
+
+- `services/camera-service` handles frame capture and camera metadata
+- `services/gps-service` handles serial/mock GNSS and normalized GPS sample events
+- `services/risk-engine` computes rule-based risk payloads from normalized inputs
+- `services/pipeline` provides a simple local event pipeline for Phase 1 validation
+- `services/cloud-api` adapts service-side outputs to the current POC cloud ingest contract
+- `services/shared` contains shared contracts and supporting scaffolding
 
 ## Example Phase 1 Demo Scenario
 
@@ -167,7 +241,7 @@ A simple first demonstration should show:
 2. a local risk event is detected
 3. a simulated V2X or weather/infrastructure event increases risk context
 4. the risk engine computes a higher score
-5. the cloud API receives the event package
+5. the event is queued, written locally, or posted to the cloud API
 6. a mitigation recommendation is produced
 
 Example outputs include:
@@ -186,20 +260,20 @@ Sample event payloads are included under:
 
 ## Near-Term Roadmap
 
-### Foundation
-- finalize repo structure
-- define event contracts
-- add simple service stubs
+### Baseline Preservation
+- keep the Jetson runtime stable and runnable
+- preserve queue, upload, and deployment behavior
+- avoid regressions in proven camera/GPS flows
 
-### Edge Ingestion
-- implement Jetson camera and GPS ingestion
-- add local event normalization
-- add baseline risk rules
+### Runtime Unification
+- increase reuse of extracted services from the old runtime
+- unify risk-engine behavior through adapters and parity tests
+- reduce duplicated logic between old and new paths
 
-### Cloud Integration
-- expose cloud API endpoint
-- add dashboard-ready summaries
-- add repeatable demo scripts
+### Packaging and Installation
+- move toward installable service packages
+- reduce `sys.path`-based import handling
+- make Jetson and development setup more consistent
 
 ### Cooperative Intelligence Expansion
 - expand with simulated or real V2X inputs
@@ -217,4 +291,9 @@ Sample event payloads are included under:
 
 ## Why This Repository Matters
 
-This repo is not just a code folder. It is the implementation record for a patent-aligned predictive safety platform for heavy commercial vehicles. The structure is designed to support technical development, demonstrations, adoption conversations, and future productization.
+This repo is not just a code folder. It is the implementation record for a patent-aligned predictive safety platform for heavy commercial vehicles. It now contains both:
+
+- a working Jetson-based baseline used for real capture/testing
+- a modular service-oriented extraction path for long-term productization
+
+That combination makes the repository useful for technical development, demonstrations, adoption conversations, and future productization.
