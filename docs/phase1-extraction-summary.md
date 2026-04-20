@@ -24,7 +24,7 @@ Flat **`src/`** modules + `pyproject.toml` per service (no shared Python package
 | `edge/camera_service/capture.py` | Facade: when monorepo `services/camera-service/src` exists, delegates to `OpenCVCameraReader` / models; else legacy inline capture |
 | `edge/gps_service/reader.py` | Same pattern for `services/gps-service/src` |
 | `edge/app/recording_*.py`, `device_connectivity.py`, `phase0_smoke.py` | Still import **edge** `camera_service` / `gps_service` (transitively hit shared `src/` on device with full repo) |
-| `edge/app/edge_runtime.py` | **Unchanged** continuous loop: POC `risk_engine/scorer.py` (dict/perception), `event_v1`, queue, upload — **not** `services/risk-engine` |
+| `edge/app/edge_runtime.py` | Continuous loop: default **legacy** `risk_engine/scorer.py`; optional **`services/risk-engine`** via `risk_engine/service_adapter.py` + feature flag (fallback to legacy on error). Same `event_v1`, queue, upload. |
 | `jetson-hcv-risk-poc/cloud/api/` | **Authoritative** `POST /v1/events`, `schemas.EventV1`, DB — adapter targets this API only |
 
 ## What remains in the old folder (by design)
@@ -71,20 +71,21 @@ There are **three** distinct shapes; naming overlap is intentional but easy to c
 
 - **No orphaned service modules** required for the pipeline; `cloud-api/src/.gitkeep` is an empty placeholder only.
 - **`.pytest_cache/`** under services: local test artifacts — not part of the deliverable baseline (prefer `.gitignore` in CI, not deleted here).
-- **“Two risk engines”:** POC `edge/risk_engine/scorer.py` vs `services/risk-engine` — different APIs and semantics; documented in `docs/refactor-status.md`. Not a bug; migration is future work.
+- **“Two risk engines”:** POC `edge/risk_engine/scorer.py` vs `services/risk-engine` — different rule semantics; runtime can select service path via flag with legacy fallback. See `docs/runtime-unification-plan.md`.
 
 ## Current limitations (Phase 1 baseline)
 
 - **`sys.path` injection** instead of pinned `pip install -e` on Jetson for every service.
 - **Pipeline** does not emit `event_v1` directly; requires adapter for POC cloud.
-- **POC `edge_runtime`** still uses dict-based `score_risk`, not `RiskEngine.assess`.
+- **`edge_runtime`** defaults to dict-based `score_risk`; optional `RiskEngine.assess` behind flag + adapter (`docs/runtime-unification-plan.md`).
 - **`--live-camera` / `--real-gps`** depend on environment (OpenCV build, serial port, permissions).
 - **JSONL → edge fields:** `jsonl_row_to_gps_fields` maps POC keys (`wall_utc`, `mono_s`, `fix_quality`, optional `speed_mps`); rows missing optional fields are fine.
 
 ## Recommended next implementation step
 
-1. **Pin services on the Jetson venv** with `pip install -e` for `camera-service`, `gps-service`, `risk-engine` (and optionally `pipeline`), then simplify POC facades to import installed packages instead of walking the tree — lowest risk, preserves current behavior.  
-2. In parallel, keep **one** contract workflow: change **`jetson-hcv-risk-poc/contracts/event_v1.json`** first, then copy/sync to **`services/shared/contracts/edge_event_v1.json`**.
+1. **Field trial** optional service risk path on Jetson (`use_service_adapter: true` on a staging config); review logs and queued `risk` blocks vs legacy.  
+2. **Pin services on the Jetson venv** with `pip install -e` for `camera-service`, `gps-service`, `risk-engine` (and optionally `pipeline`), then simplify POC facades / adapter imports.  
+3. Keep **one** contract workflow: change **`jetson-hcv-risk-poc/contracts/event_v1.json`** first, then copy/sync to **`services/shared/contracts/edge_event_v1.json`**.
 
 ---
 

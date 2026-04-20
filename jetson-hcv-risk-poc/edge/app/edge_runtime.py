@@ -29,6 +29,7 @@ from event_store.queue import EventQueue
 from inference.perception_adapter import PerceptionAdapter
 from risk_engine.context_provider import MockContextProvider
 from risk_engine.scorer import band_rank, score_risk
+from risk_engine.service_adapter import score_risk_via_service_engine, use_service_risk_engine_from_config
 from uploader.client import CloudUploader
 
 _BAND_ORDER = ("none", "low", "medium", "high", "critical")
@@ -260,12 +261,24 @@ def main() -> int:
         camera_alive, camera_age_sec = _camera_health(recording_root, video_name, camera_healthy_age_sec)
         perception_snapshot = perception.next_snapshot(camera_alive=camera_alive, camera_age_sec=camera_age_sec)
         context_snapshot = context_provider.snapshot()
-        risk = score_risk(
-            gps=gps_fix,
-            perception=perception_snapshot.as_dict(),
-            context=context_snapshot.as_dict(),
-            config=risk_cfg,
-        )
+        perception_d = perception_snapshot.as_dict()
+        context_d = context_snapshot.as_dict()
+        use_svc = use_service_risk_engine_from_config(risk_cfg)
+        if use_svc:
+            try:
+                risk = score_risk_via_service_engine(
+                    gps_fix,
+                    perception_d,
+                    context_d,
+                    risk_cfg,
+                    vehicle_id=str(cfg.get("device_id", "edge-runtime")),
+                )
+                log.debug("risk assessed via services/risk-engine adapter")
+            except Exception as exc:
+                log.warning("service risk engine failed (%s); falling back to legacy scorer", exc)
+                risk = score_risk(gps=gps_fix, perception=perception_d, context=context_d, config=risk_cfg)
+        else:
+            risk = score_risk(gps=gps_fix, perception=perception_d, context=context_d, config=risk_cfg)
 
         if _band_enabled(risk.band, min_emit_band):
             event = _build_event(

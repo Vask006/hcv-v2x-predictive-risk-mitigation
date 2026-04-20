@@ -76,6 +76,9 @@ context_mock:
   scenario_speed_multiplier: 1.0
 
 risk_engine:
+  # When true (or env HCV_USE_SERVICE_RISK_ENGINE=1), use services/risk-engine via risk_engine/service_adapter.py.
+  # On failure, edge_runtime falls back to the legacy dict scorer. Default: off for proven Jetson behavior.
+  use_service_adapter: false
   bands:
     low: 0.20
     medium: 0.45
