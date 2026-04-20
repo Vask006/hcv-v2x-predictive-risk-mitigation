@@ -1,9 +1,30 @@
 """Shared directory layout and video segment paths for local recording."""
 from __future__ import annotations
 
+import os
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+
+# When `segment_duration_sec` is omitted from YAML, use chunked files (vehicle-friendly).
+_DEFAULT_SEGMENT_SEC = 60.0
+
+
+def resolve_segment_duration_sec(rec: dict[str, Any], cli_segment_sec: float | None) -> float:
+    """
+    Seconds per video file. Priority: ``--segment-sec`` > ``HCV_SEGMENT_SEC`` env > YAML.
+
+    If the YAML key is **missing**, default is 60s (short clips).
+    If YAML sets ``segment_duration_sec: 0``, that is honored (one ``camera.mp4`` per session).
+    """
+    if cli_segment_sec is not None:
+        return float(cli_segment_sec)
+    env_raw = os.environ.get("HCV_SEGMENT_SEC", "").strip()
+    if env_raw:
+        return float(env_raw)
+    if "segment_duration_sec" in rec and rec["segment_duration_sec"] is not None:
+        return float(rec["segment_duration_sec"])
+    return _DEFAULT_SEGMENT_SEC
 
 
 def session_dir_with_day(base: Path, folder_suffix: str = "") -> Path:

@@ -43,6 +43,12 @@ def run_camera_recording_loop(
     """
     from camera_service.capture import CameraCapture, CaptureError
 
+    segment_duration_sec = float(segment_duration_sec)
+    if segment_duration_sec <= 0:
+        log.warning(
+            "segment_duration_sec is 0 — one file camera.mp4 for the whole session; set YAML or HCV_SEGMENT_SEC to chunk.",
+        )
+
     cam_cfg = cfg.get("camera", {})
     pipeline = cam_cfg.get("gstream_pipeline")
     idx = int(cam_cfg.get("index", 0))

@@ -26,7 +26,7 @@ from app.device_connectivity import (
     probe_camera,
     resolve_connectivity_log_paths,
 )
-from app.recording_paths import session_dir_with_day
+from app.recording_paths import resolve_segment_duration_sec, session_dir_with_day
 from app.recording_video import run_camera_recording_loop
 
 
@@ -63,9 +63,7 @@ def main() -> int:
     duration_sec = float(rec.get("duration_sec", 0))
     if args.duration_sec is not None:
         duration_sec = float(args.duration_sec)
-    segment_duration_sec = float(rec.get("segment_duration_sec", 0))
-    if args.segment_sec is not None:
-        segment_duration_sec = float(args.segment_sec)
+    segment_duration_sec = resolve_segment_duration_sec(rec, args.segment_sec)
     video_name = str(rec.get("video_filename", "camera.mp4"))
     meta_name = str(rec.get("session_meta_filename", "session.json"))
 
