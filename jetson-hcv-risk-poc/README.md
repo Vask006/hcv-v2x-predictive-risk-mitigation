@@ -2,14 +2,26 @@
 
 Predictive risk mitigation proof of concept for heavy commercial vehicles: Jetson Orin Nano edge stack plus cloud API and dashboard.
 
+## Intellectual property (main source)
+
+The **German utility model** specification (*Integrated V2X-Based Cloud-Enhanced Predictive Risk Mitigation System for HCVs*) is the **authoritative product definition** for this repository:
+
+- **[docs/patent/README.md](docs/patent/README.md)** — index and how to use these documents  
+- **[docs/patent/utility-model-specification.md](docs/patent/utility-model-specification.md)** — full specification text (abstract through claims)  
+- **[docs/patent/PHASED_IMPLEMENTATION.md](docs/patent/PHASED_IMPLEMENTATION.md)** — **phase-wise** roadmap aligned with the specification and this codebase  
+- **[docs/patent-mapping/claim-phase-matrix.md](docs/patent-mapping/claim-phase-matrix.md)** — claims ↔ phases ↔ modules (update as you implement)
+
+Implementation proceeds **by phase** (Phase 0–1 in tree today; Phases 2–5 planned—see phased doc). Legal interpretation remains with IP counsel.
+
 ## Layout
 
 | Path | Purpose |
 |------|---------|
 | `contracts/` | Shared JSON Schema (e.g. `event_v1.json`) |
 | `docs/architecture/` | System and deployment diagrams, ADRs |
+| `docs/patent/` | **Utility model specification (source of truth)** + phased implementation plan |
 | `docs/eb1a-evidence/` | Extraordinary ability evidence artifacts (summaries, exhibits index) |
-| `docs/patent-mapping/` | Claims ↔ implementation mapping notes |
+| `docs/patent-mapping/` | Claims ↔ implementation mapping (see `claim-phase-matrix.md`) |
 | `docs/scenarios/` | Test and demo scenarios |
 | `docs/demo-script/` | Step-by-step demo narration |
 | `edge/camera_service/` | Camera capture / GStreamer or DeepStream adapters |
@@ -55,6 +67,129 @@ No hardware (camera optional, mock GPS):
 python -m app.phase0_smoke --no-camera --mock-gps
 ```
 
+### Edge recording (camera file + GPS JSONL on disk)
+
+Writes under `edge/data/recordings/<YYYY-MM-DD>/<session-UTC>/` by default (`camera*.mp4`, `gps*.jsonl`, `session.json`).  
+Set `recording.output_base` in `config/default.yaml` to an absolute path (for example an SSD mount on Jetson).
+
+```bash
+cd jetson-hcv-risk-poc/edge
+source .venv/bin/activate
+python -m app.record_session --config config/default.yaml --mock-gps
+```
+
+Use real USB GPS (set `gps.port` in config): omit `--mock-gps`. Stop with Ctrl+C or set `recording.duration_sec` in YAML.
+For production/vehicle runs, set `recording.gps_optional: false` to fail fast if GPS serial is missing.
+
+**Camera only (no GPS probe, no `gps.jsonl`):** `python -m app.record_session --config config/camera_only.yaml` or `--no-gps`, or set `recording.camera_only: true` in your YAML. On the Jetson with `hcv-record.service`, point `HCV_CONFIG` at `config/camera_only.yaml` in `/etc/default/hcv-record`, or set `HCV_CAMERA_ONLY=1` while keeping `HCV_CONFIG` on `default.yaml`. Use `hcv-camera-record.service` only when you intentionally want **camera-only** sessions (no GPS file in that folder).
+
+### Auto-start recording on boot (Jetson)
+
+**`hcv-record.service`** runs `record_session`: each boot cycle creates **one** session directory under `recording.output_base` (see `edge/config/default.yaml`) containing **both** aligned camera video and `gps.jsonl` (plus `session.json`). GPS rows include `wall_utc` per fix. Do not enable `hcv-camera-record` / `hcv-gps-record` alongside it if you need video and GPS in the same folder — those units each start their **own** session directory.
+
+1. Clone repo once on the board, create venv, `pip install -r edge/requirements.txt`, and set `gps.port` / `recording.output_base` as needed.
+2. Make the start script executable: `chmod +x edge/deploy/hcv-record-start.sh`
+3. Edit `edge/deploy/hcv-record.service`: set `User`, `Group`, `WorkingDirectory`, and `ExecStart` to your **absolute** paths (example uses user `isha`).
+4. Optional: copy `edge/deploy/hcv-record.default.example` to `/etc/default/hcv-record` to tune `HCV_BOOT_DELAY_SEC` (default **30** seconds; use **45** on unstable inverter power so USB camera/GPS can enumerate) and `HCV_CONFIG`.
+5. Install and enable:
+
+```bash
+sudo cp edge/deploy/hcv-record.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable hcv-record.service
+sudo systemctl start hcv-record.service
+```
+
+Logs: `journalctl -u hcv-record.service -f` · Stop until next boot: `sudo systemctl stop hcv-record.service`
+
+### Auto-start with separate camera and GPS services (optional)
+
+Use **`hcv-camera-record.service`** and **`hcv-gps-record.service`** only when you want **independent** processes (e.g. camera failure should not stop GPS logging). Each service creates its **own** timestamped session folder, so video and GPS files are **not** co-located. For one folder with both, use **`hcv-record.service`** above.
+
+1. Make start scripts executable:
+
+```bash
+chmod +x edge/deploy/hcv-camera-record-start.sh
+chmod +x edge/deploy/hcv-gps-record-start.sh
+```
+
+2. Edit both service files for your absolute paths:
+   - `edge/deploy/hcv-camera-record.service`
+   - `edge/deploy/hcv-gps-record.service`
+
+3. Optional: copy defaults and tune `HCV_BOOT_DELAY_SEC` (30-45 on vehicle inverter power):
+
+```bash
+sudo cp edge/deploy/hcv-camera-record.default.example /etc/default/hcv-camera-record
+sudo cp edge/deploy/hcv-gps-record.default.example /etc/default/hcv-gps-record
+```
+
+4. Install and enable both units:
+
+```bash
+sudo cp edge/deploy/hcv-camera-record.service /etc/systemd/system/
+sudo cp edge/deploy/hcv-gps-record.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable hcv-camera-record.service
+sudo systemctl enable hcv-gps-record.service
+sudo systemctl start hcv-camera-record.service
+sudo systemctl start hcv-gps-record.service
+```
+
+5. Operate and inspect independently:
+
+```bash
+journalctl -u hcv-camera-record.service -f
+journalctl -u hcv-gps-record.service -f
+sudo systemctl restart hcv-camera-record.service
+sudo systemctl restart hcv-gps-record.service
+```
+
+### Phase 1 runtime (risk scoring + queue + cloud upload)
+
+Phase 1 architecture details live in `PHASE1_POC_ARCHITECTURE.md`.
+The runtime consumes latest sensor outputs, generates `event_v1` records, stores them in a durable queue, and uploads to cloud when reachable.
+
+Run manually:
+
+```bash
+cd jetson-hcv-risk-poc/edge
+source .venv/bin/activate
+python -m app.edge_runtime --config config/default.yaml
+```
+
+Install as service:
+
+```bash
+chmod +x edge/deploy/hcv-edge-runtime-start.sh
+sudo cp edge/deploy/hcv-edge-runtime.service /etc/systemd/system/
+sudo cp edge/deploy/hcv-edge-runtime.default.example /etc/default/hcv-edge-runtime
+sudo systemctl daemon-reload
+sudo systemctl enable hcv-edge-runtime.service
+sudo systemctl start hcv-edge-runtime.service
+```
+
+Inspect runtime health:
+
+```bash
+journalctl -u hcv-edge-runtime.service -f
+ls edge/data/recordings/phase1_events/pending
+ls edge/data/recordings/phase1_events/sent
+```
+
+**Validation clip (~30s, one-shot):** use `edge/deploy/hcv-record-validation.service` so recording **stops cleanly** (MP4 `moov` written). It uses `--mock-gps` and `Restart=no` (does not loop like the main service).
+
+```bash
+chmod +x edge/deploy/hcv-record-validation-start.sh
+sudo cp edge/deploy/hcv-record-validation.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl stop hcv-record.service    # free the camera if the main service is running
+sudo systemctl start hcv-record-validation.service
+journalctl -u hcv-record-validation.service -f
+```
+
+Optional: `/etc/default/hcv-record-validation` from `edge/deploy/hcv-record-validation.default.example` to change `HCV_DURATION_SEC` or `HCV_CONFIG`.
+
 On Jetson, prefer system OpenCV with GStreamer support where needed; `opencv-python-headless` is for convenience on dev PCs.
 
 ### Cloud API — local (SQLite)
@@ -69,6 +204,7 @@ uvicorn main:app --reload --host 0.0.0.0 --port 8000
 
 - Health: `GET http://127.0.0.1:8000/health`
 - Ingest: `POST http://127.0.0.1:8000/v1/events` with body matching `samples/event_v1_example.json`
+- List with mock context enrichment: `GET http://127.0.0.1:8000/v1/events?enrich=true`
 
 ### Cloud API — Docker (Postgres)
 

@@ -1,0 +1,160 @@
+"""
+Record GPS fixes to local JSONL file only.
+
+Run from `edge/`:
+  python -m app.record_gps --config config/default.yaml
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import logging
+import signal
+import sys
+import threading
+import time
+from datetime import datetime, timezone
+from pathlib import Path
+
+import yaml
+
+_EDGE_ROOT = Path(__file__).resolve().parent.parent
+if str(_EDGE_ROOT) not in sys.path:
+    sys.path.insert(0, str(_EDGE_ROOT))
+
+from app.device_connectivity import (
+    append_connectivity_record,
+    probe_gps,
+    resolve_connectivity_log_paths,
+)
+from app.recording_gps_writer import gps_jsonl_writer_loop
+from app.recording_paths import resolve_segment_duration_sec, session_dir_with_day
+
+
+def _load_config(path: Path) -> dict:
+    with path.open("r", encoding="utf-8") as f:
+        return yaml.safe_load(f)
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Record GPS fixes to JSONL (GPS only).")
+    parser.add_argument("--config", type=Path, default=_EDGE_ROOT / "config" / "default.yaml")
+    parser.add_argument(
+        "--mock-gps",
+        action="store_true",
+        help="Synthetic bench GPS in JSONL (no serial; not NMEA from hardware)",
+    )
+    parser.add_argument(
+        "--duration-sec",
+        type=float,
+        default=None,
+        help="Override recording.duration_sec (0 = until Ctrl+C)",
+    )
+    parser.add_argument(
+        "--segment-sec",
+        type=float,
+        default=None,
+        help="Override recording.segment_duration_sec for GPS JSONL chunks (0 = single gps.jsonl)",
+    )
+    args = parser.parse_args()
+
+    cfg = _load_config(args.config)
+    rec = cfg.get("recording", {})
+    out_base = Path(rec.get("output_base", str(_EDGE_ROOT / "data" / "recordings")))
+    out_base = out_base.expanduser()
+    if not out_base.is_absolute():
+        out_base = (_EDGE_ROOT / out_base).resolve()
+
+    duration_sec = float(rec.get("duration_sec", 0))
+    if args.duration_sec is not None:
+        duration_sec = float(args.duration_sec)
+    gps_probe_timeout_sec = float(rec.get("gps_probe_timeout_sec", 45))
+    gps_name = str(rec.get("gps_filename", "gps.jsonl"))
+    meta_name = str(rec.get("session_meta_filename", "session.json"))
+    segment_duration_sec = resolve_segment_duration_sec(rec, args.segment_sec)
+
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+    log = logging.getLogger("record-gps")
+
+    _connectivity_camera, connectivity_gps = resolve_connectivity_log_paths(_EDGE_ROOT, cfg)
+    device_id = cfg.get("device_id", "unknown")
+    append_connectivity_record(
+        connectivity_gps,
+        {
+            "event": "record_gps_attempt",
+            "device_id": device_id,
+            "mock_gps": args.mock_gps,
+        },
+    )
+    gps_ok, gps_detail = probe_gps(cfg, args.mock_gps, gps_probe_timeout_sec)
+    append_connectivity_record(
+        connectivity_gps,
+        {"event": "gps_probe", "ok": gps_ok, "detail": gps_detail, "device_id": device_id},
+    )
+    if not gps_ok:
+        append_connectivity_record(
+            connectivity_gps,
+            {
+                "event": "session_aborted",
+                "reason": "gps_probe_failed",
+                "detail": gps_detail,
+                "device_id": device_id,
+            },
+        )
+        log.error("GPS not ready (%s). No session folder created.", gps_detail)
+        return 1
+
+    session = session_dir_with_day(out_base, "-gps")
+    append_connectivity_record(
+        connectivity_gps,
+        {"event": "session_folder_created", "session_dir": str(session), "device_id": device_id},
+    )
+
+    meta_path = session / meta_name
+    gps_template = session / gps_name
+    started = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+    meta_path.write_text(
+        json.dumps(
+            {
+                "device_id": device_id,
+                "started_utc": started,
+                "mode": "gps_only",
+                "config": str(args.config.resolve()),
+                "duration_sec": duration_sec,
+                "segment_duration_sec": segment_duration_sec,
+                "mock_gps": args.mock_gps,
+                "session_dir": str(session),
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
+    stop_ev = threading.Event()
+    start_t = time.monotonic()
+
+    def should_stop() -> bool:
+        if stop_ev.is_set():
+            return True
+        if duration_sec <= 0:
+            return False
+        return (time.monotonic() - start_t) >= duration_sec
+
+    def handle_sig(*_a: object) -> None:
+        log.info("stop signal")
+        stop_ev.set()
+
+    signal.signal(signal.SIGINT, handle_sig)
+    if hasattr(signal, "SIGTERM"):
+        signal.signal(signal.SIGTERM, handle_sig)
+
+    ok = gps_jsonl_writer_loop(gps_template, segment_duration_sec, cfg, args.mock_gps, log, should_stop)
+    if not ok:
+        return 1
+
+    log.info("gps session complete -> %s", session)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -1,0 +1,29 @@
+# GPS-only: creates its own session folder with gps*.jsonl (no video). For camera+GPS in ONE folder, use hcv-record.service instead.
+#
+# Install on Jetson (edit User/Group/WorkingDirectory/ExecStart for your paths):
+#   chmod +x edge/deploy/hcv-gps-record-start.sh
+#   sudo cp edge/deploy/hcv-gps-record.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable hcv-gps-record.service
+#   sudo systemctl start hcv-gps-record.service
+#
+# Logs: journalctl -u hcv-gps-record.service -f
+
+[Unit]
+Description=HCV GPS-only recording (separate session folder; use hcv-record for camera+GPS together)
+After=multi-user.target network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=isha
+Group=isha
+WorkingDirectory=/home/isha/hcv-v2x-predictive-risk-mitigation/jetson-hcv-risk-poc/edge
+Environment=PYTHONUNBUFFERED=1
+EnvironmentFile=-/etc/default/hcv-gps-record
+ExecStart=/bin/bash /home/isha/hcv-v2x-predictive-risk-mitigation/jetson-hcv-risk-poc/edge/deploy/hcv-gps-record-start.sh
+Restart=always
+RestartSec=15
+
+[Install]
+WantedBy=multi-user.target

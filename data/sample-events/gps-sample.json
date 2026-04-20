@@ -1,0 +1,22 @@
+{
+  "vehicleId": "HCV-DEMO-001",
+  "tripId": "trip-2026-04-19-001",
+  "timestamp": "2026-04-19T09:15:00Z",
+  "position": {
+    "latitude": 41.6986,
+    "longitude": -88.0684
+  },
+  "speedKph": 72,
+  "headingDegrees": 148,
+  "roadContext": {
+    "roadType": "highway",
+    "geofence": "high-risk-corridor-a",
+    "curveAheadMeters": 180,
+    "gradePercent": 4.2
+  },
+  "environment": {
+    "weather": "rain",
+    "visibility": "moderate",
+    "surfaceCondition": "wet"
+  }
+}

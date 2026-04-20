@@ -1,0 +1,13 @@
+# Run daily (after boot if missed). See hcv-prune-recordings.service.
+
+[Unit]
+Description=Daily prune of HCV recording videos
+
+[Timer]
+Unit=hcv-prune-recordings.service
+OnCalendar=*-*-* 03:30:00
+Persistent=true
+RandomizedDelaySec=45m
+
+[Install]
+WantedBy=timers.target

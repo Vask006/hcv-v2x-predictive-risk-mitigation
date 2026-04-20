@@ -71,6 +71,28 @@ class CameraCapture:
             backend=self._backend,
         )
 
+    def read_frame(self) -> tuple[FrameSample, Any]:
+        """Read one frame and return metadata plus BGR image for encoding/saving."""
+        if self._cap is None:
+            raise CaptureError("Camera not open")
+        from datetime import datetime, timezone
+
+        ok, frame = self._cap.read()
+        if not ok or frame is None:
+            raise CaptureError("Failed to read frame")
+
+        h, w = frame.shape[:2]
+        now = time.monotonic()
+        wall = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        meta = FrameSample(
+            wall_time_utc_iso=wall,
+            monotonic_s=now,
+            width=w,
+            height=h,
+            backend=self._backend,
+        )
+        return meta, frame
+
     def close(self) -> None:
         if self._cap is not None:
             self._cap.release()

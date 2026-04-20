@@ -1,0 +1,36 @@
+# Combined camera + GPS: one UTC session folder under recording.output_base (YAML), e.g.
+#   data/recordings/YYYY-MM-DD/YYYY-MM-DDTHH-MM-SSZ/
+# containing session.json, camera*.mp4, gps*.jsonl (names from recording.video_filename / gps_filename).
+#
+# Do not run hcv-gps-record nor hcv-camera-record at the same time — each starts its own session folder.
+#
+# Install on Jetson (edit User + paths to match your login and clone location):
+#   ExecStart uses /bin/bash so the .sh file does not need chmod +x after git pull.
+#   sudo install -m 755 deploy/hcv-record-start.sh /opt/hcv-edge/hcv-record-start.sh
+#   OR keep script inside the git repo and point ExecStart to that absolute path.
+#
+#   sudo cp deploy/hcv-record.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable hcv-record.service
+#   sudo systemctl start hcv-record.service
+#
+# Logs: journalctl -u hcv-record.service -f
+# Optional /etc/default/hcv-record: HCV_CONFIG, HCV_BOOT_DELAY_SEC, HCV_CAMERA_ONLY=1, HCV_SEGMENT_SEC=60
+
+[Unit]
+Description=HCV camera + GPS recording (one session folder: video + JSONL)
+After=multi-user.target network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=isha
+Group=isha
+WorkingDirectory=/home/isha/hcv-v2x-predictive-risk-mitigation/jetson-hcv-risk-poc/edge
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/bin/bash /home/isha/hcv-v2x-predictive-risk-mitigation/jetson-hcv-risk-poc/edge/deploy/hcv-record-start.sh
+Restart=always
+RestartSec=15
+
+[Install]
+WantedBy=multi-user.target

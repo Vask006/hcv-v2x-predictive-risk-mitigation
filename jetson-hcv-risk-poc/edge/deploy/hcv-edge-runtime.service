@@ -1,0 +1,27 @@
+# Install on Jetson (edit User/Group/WorkingDirectory/ExecStart for your paths):
+#   chmod +x edge/deploy/hcv-edge-runtime-start.sh
+#   sudo cp edge/deploy/hcv-edge-runtime.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable hcv-edge-runtime.service
+#   sudo systemctl start hcv-edge-runtime.service
+#
+# Logs: journalctl -u hcv-edge-runtime.service -f
+
+[Unit]
+Description=HCV Phase 1 edge runtime (risk scoring + event queue + upload)
+After=multi-user.target network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=isha
+Group=isha
+WorkingDirectory=/home/isha/hcv-v2x-predictive-risk-mitigation/jetson-hcv-risk-poc/edge
+Environment=PYTHONUNBUFFERED=1
+EnvironmentFile=-/etc/default/hcv-edge-runtime
+ExecStart=/bin/bash /home/isha/hcv-v2x-predictive-risk-mitigation/jetson-hcv-risk-poc/edge/deploy/hcv-edge-runtime-start.sh
+Restart=always
+RestartSec=15
+
+[Install]
+WantedBy=multi-user.target

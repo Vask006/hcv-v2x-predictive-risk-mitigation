@@ -37,7 +37,11 @@ def main() -> int:
     )
     parser.add_argument("--no-camera", action="store_true", help="Skip camera")
     parser.add_argument("--no-gps", action="store_true", help="Skip GPS serial")
-    parser.add_argument("--mock-gps", action="store_true", help="Use mock GPS fixes (no serial)")
+    parser.add_argument(
+        "--mock-gps",
+        action="store_true",
+        help="Synthetic bench GPS (no serial; not NMEA from hardware)",
+    )
     args = parser.parse_args()
 
     cfg = _load_config(args.config)
@@ -90,16 +94,19 @@ def main() -> int:
         if args.mock_gps:
             from gps_service.reader import mock_fixes
 
+            log.info(
+                "GPS is synthetic bench data (--mock-gps); not from a receiver; coordinates are placeholders."
+            )
             for i, fix in enumerate(mock_fixes(n_gps)):
                 log.info(
-                    "gps[%s] wall_utc=%s mono_s=%.6f lat=%s lon=%s q=%s raw=%s",
+                    "mock_gps[%s] wall_utc=%s mono_s=%.6f lat=%s lon=%s q=%s tag=%s",
                     i,
                     fix.wall_time_utc_iso,
                     fix.monotonic_s,
                     fix.latitude_deg,
                     fix.longitude_deg,
                     fix.fix_quality,
-                    fix.raw_sentence[:80],
+                    fix.raw_sentence,
                 )
         else:
             from gps_service.reader import GPSReader, GPSReaderError
