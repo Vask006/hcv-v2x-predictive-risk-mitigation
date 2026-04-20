@@ -48,7 +48,11 @@ def _load_config(path: Path) -> dict:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Record camera video + GPS JSONL to disk.")
     parser.add_argument("--config", type=Path, default=_EDGE_ROOT / "config" / "default.yaml")
-    parser.add_argument("--mock-gps", action="store_true", help="Use mock GPS (no serial)")
+    parser.add_argument(
+        "--mock-gps",
+        action="store_true",
+        help="Synthetic bench GPS in JSONL (no serial; not NMEA from hardware)",
+    )
     parser.add_argument("--no-gps", action="store_true", help="Camera only, no GPS file")
     parser.add_argument("--no-camera", action="store_true", help="GPS only (no video)")
     parser.add_argument(
@@ -91,7 +95,7 @@ def main() -> int:
         port = Path(str(g.get("port", "/dev/ttyUSB0")))
         if not port.exists() and rec.get("gps_optional", True):
             log.warning(
-                "GPS port %s missing — continuing camera-only. Use --mock-gps to log fake GPS.",
+                "GPS port %s missing — continuing camera-only. Use --mock-gps for synthetic bench rows in JSONL.",
                 port,
             )
             args.no_gps = True

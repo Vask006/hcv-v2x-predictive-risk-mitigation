@@ -12,7 +12,7 @@ from typing import Any
 from app.recording_paths import initial_gps_path, numbered_gps_path
 
 
-def _write_fix_row(out_path: Path, fix: object) -> None:
+def _write_fix_row(out_path: Path, fix: object, *, gps_source: str | None = None) -> None:
     row = {
         "wall_utc": fix.wall_time_utc_iso,
         "mono_s": fix.monotonic_s,
@@ -21,6 +21,8 @@ def _write_fix_row(out_path: Path, fix: object) -> None:
         "fix_quality": fix.fix_quality,
         "raw": (fix.raw_sentence or "")[:500],
     }
+    if gps_source:
+        row["gps_source"] = gps_source
     with out_path.open("a", encoding="utf-8") as f:
         f.write(json.dumps(row, ensure_ascii=False) + "\n")
 
@@ -68,7 +70,9 @@ def gps_jsonl_writer_loop(
         if mock_gps:
             from gps_service.reader import mock_fixes
 
-            log.info("GPS mock mode enabled")
+            log.info(
+                "GPS synthetic bench mode (--mock-gps): JSONL rows are tagged gps_source=hcv_synthetic_mock"
+            )
             while not should_stop():
                 for fix in mock_fixes(20):
                     if should_stop():
@@ -76,7 +80,7 @@ def gps_jsonl_writer_loop(
                     out_path, segment_start, segment_idx = _rotate_gps_segment_if_needed(
                         gps_template, seg, segment_start, segment_idx, out_path, log
                     )
-                    _write_fix_row(out_path, fix)
+                    _write_fix_row(out_path, fix, gps_source="hcv_synthetic_mock")
                 time.sleep(0.2)
             return True
         else:

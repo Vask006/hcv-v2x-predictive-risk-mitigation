@@ -39,7 +39,11 @@ def _load_config(path: Path) -> dict:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Record GPS fixes to JSONL (GPS only).")
     parser.add_argument("--config", type=Path, default=_EDGE_ROOT / "config" / "default.yaml")
-    parser.add_argument("--mock-gps", action="store_true", help="Use mock GPS (no serial)")
+    parser.add_argument(
+        "--mock-gps",
+        action="store_true",
+        help="Synthetic bench GPS in JSONL (no serial; not NMEA from hardware)",
+    )
     parser.add_argument(
         "--duration-sec",
         type=float,

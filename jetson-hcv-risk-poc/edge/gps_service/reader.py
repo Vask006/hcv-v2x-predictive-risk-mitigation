@@ -164,14 +164,18 @@ def _parse_line(line: str, wall: str, mono: float) -> Optional[GPSFix]:
 
 
 def mock_fixes(count: int = 5) -> Iterator[GPSFix]:
-    """Deterministic fake fixes for bench test without hardware."""
+    """Synthetic fixes for bench tests without a serial receiver.
+
+    ``raw_sentence`` is intentionally **not** valid NMEA so logs and JSONL are
+    not mistaken for output from a GPS module.
+    """
     base = time.monotonic()
     for i in range(count):
         yield GPSFix(
             wall_time_utc_iso=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
             monotonic_s=base + i * 0.2,
-            raw_sentence=f"$GPRMC,123519,A,4717.11{i % 10},N,00833.22,E,022.4,084.4,230394,003.1,W*",
-            latitude_deg=47.285 + i * 0.0001,
-            longitude_deg=8.5537 + i * 0.0001,
+            raw_sentence=f"$HCVMOCK,BENCH_SYNTHETIC,NO_SERIAL,i={i}*",
+            latitude_deg=0.0 + i * 1e-7,
+            longitude_deg=0.0 + i * 1e-7,
             fix_quality=1,
         )

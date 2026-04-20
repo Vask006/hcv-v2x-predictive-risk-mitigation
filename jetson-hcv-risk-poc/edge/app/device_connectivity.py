@@ -74,7 +74,7 @@ def probe_camera(cfg: dict[str, Any]) -> tuple[bool, str]:
 
 def probe_gps(cfg: dict[str, Any], mock_gps: bool, wait_fix_sec: float) -> tuple[bool, str]:
     if mock_gps:
-        return True, "gps_ok mock_gps"
+        return True, "gps_ok synthetic_bench_no_serial"
 
     from gps_service.reader import GPSReader, GPSReaderError
 
