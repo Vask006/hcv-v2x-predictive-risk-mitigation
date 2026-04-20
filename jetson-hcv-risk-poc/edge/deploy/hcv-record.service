@@ -10,6 +10,7 @@
 #
 # Logs: journalctl -u hcv-record.service -f
 # Recordings: see recording.output_base in config (default: edge/data/recordings/<UTC>/)
+# Optional /etc/default/hcv-record: HCV_CONFIG, HCV_BOOT_DELAY_SEC, HCV_CAMERA_ONLY=1, HCV_SEGMENT_SEC=60
 
 [Unit]
 Description=HCV camera and GPS recording (timestamped sessions)

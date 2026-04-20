@@ -215,6 +215,12 @@ def main() -> int:
         ),
         encoding="utf-8",
     )
+    log.info(
+        "Session %s — config=%s segment_duration_sec=%s (0 = single camera.mp4; >0 = camera_000001.mp4, …)",
+        session.name,
+        args.config.resolve(),
+        segment_duration_sec,
+    )
 
     stop = threading.Event()
     gps_thread: threading.Thread | None = None

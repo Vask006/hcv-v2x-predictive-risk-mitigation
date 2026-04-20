@@ -64,7 +64,11 @@ def run_camera_recording_loop(
             writer, actual_video_path = open_video_writer(first_path, fps, (w, h))
             segment_start = time.monotonic()
             segment_idx = 1 if segment_duration_sec > 0 else 0
-            log.info("Writing video -> %s", actual_video_path)
+            log.info(
+                "Writing video segment_length=%ss -> %s",
+                segment_duration_sec,
+                actual_video_path,
+            )
             writer.write(frame0)
             frames = 1
 
