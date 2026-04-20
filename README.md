@@ -14,6 +14,30 @@ This repository is the product and proof-of-concept workspace for an intelligent
 
 The goal is to move from reactive vehicle safety to proactive and cooperative risk mitigation for trucks, buses, and fleet-operated heavy vehicles.
 
+## Current Status
+
+This repository is currently in early proof-of-concept setup.
+
+### Implemented
+
+- repository structure aligned to major invention modules
+- architecture and Phase 1 documentation
+- service placeholder modules
+- sample event payloads for demo and design work
+
+### In Progress
+
+- GPS ingestion service
+- camera ingestion service
+- baseline risk engine
+- cloud event API
+
+### Simulated in Phase 1
+
+- V2V and V2I cooperative context
+- weather and infrastructure hazard signals
+- selected fleet-side visibility flows
+
 ## Problem Statement
 
 Heavy commercial vehicles operate under higher safety risk because of:
@@ -48,6 +72,17 @@ See:
 - [`docs/patent-mapping/claim-to-poc-mapping.md`](docs/patent-mapping/claim-to-poc-mapping.md)
 - [`docs/demo/demo-workflow.md`](docs/demo/demo-workflow.md)
 
+## Target POC Environment
+
+The initial edge proof of concept is intended to run on NVIDIA Jetson hardware with:
+
+- camera input
+- GPS input
+- local edge event processing
+- cloud event publishing
+
+This repository represents a patent-aligned proof-of-concept workspace and does not yet implement every production-scale component of the full system.
+
 ## Repository Structure
 
 ```text
@@ -69,11 +104,20 @@ See:
     └── sample-events/
 ```
 
+## Getting Started
+
+1. Clone the repository.
+2. Review the Phase 1 scope in [`docs/phase-1-poc-scope.md`](docs/phase-1-poc-scope.md).
+3. Review the architecture in [`docs/architecture/architecture-diagram.md`](docs/architecture/architecture-diagram.md).
+4. Review the claim mapping in [`docs/patent-mapping/claim-to-poc-mapping.md`](docs/patent-mapping/claim-to-poc-mapping.md).
+5. Inspect the sample event payloads under `data/sample-events/`.
+6. Begin implementation with the `gps-service`, `camera-service`, `risk-engine`, and `cloud-api` modules.
+
 ## Phase 1 POC Scope
 
 Phase 1 is intentionally narrow and demoable.
 
-### In scope
+### In Scope
 
 - GPS feed ingestion
 - camera feed ingestion or simulation
@@ -84,7 +128,7 @@ Phase 1 is intentionally narrow and demoable.
 - dashboard-ready output or structured logs
 - one end-to-end demo workflow
 
-### Out of scope for Phase 1
+### Out of Scope for Phase 1
 
 - production-grade V2X hardware stack
 - full CAN integration across real vehicles
@@ -104,11 +148,22 @@ This repository is being organized so each major module can evolve independently
 - `services/cloud-api` receives and stores events for downstream analytics
 - `services/dashboard` visualizes trips, risk states, and alerts
 
+## Example Phase 1 Demo Scenario
+
+A heavy commercial vehicle is approaching a curved wet road segment.
+
+- GPS indicates vehicle speed and upcoming curve distance
+- camera or edge logic detects reduced lane stability
+- simulated infrastructure or weather context signals slippery conditions
+- the risk engine raises the risk score
+- the cloud API receives the event
+- the system recommends speed reduction and surfaces a fleet alert
+
 ## Demo Workflow
 
 A simple first demonstration should show:
 
-1. GPS and camera/edge data are ingested
+1. GPS and camera or edge data are ingested
 2. a local risk event is detected
 3. a simulated V2X or weather/infrastructure event increases risk context
 4. the risk engine computes a higher score
@@ -127,26 +182,26 @@ Example outputs include:
 Sample event payloads are included under:
 
 - [`data/sample-events/gps-sample.json`](data/sample-events/gps-sample.json)
-- [`data/sample-events/edge-risk-event.json`](data/sample-events/edge-risk-event.json)
+- [`data/sample-events/edge-risk-event-v1.json`](data/sample-events/edge-risk-event-v1.json)
 
 ## Near-Term Roadmap
 
-### Step 1
+### Foundation
 - finalize repo structure
 - define event contracts
 - add simple service stubs
 
-### Step 2
+### Edge Ingestion
 - implement Jetson camera and GPS ingestion
 - add local event normalization
 - add baseline risk rules
 
-### Step 3
+### Cloud Integration
 - expose cloud API endpoint
 - add dashboard-ready summaries
 - add repeatable demo scripts
 
-### Step 4
+### Cooperative Intelligence Expansion
 - expand with simulated or real V2X inputs
 - improve predictive models
 - add measurable evaluation metrics
