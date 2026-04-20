@@ -194,7 +194,7 @@ def main() -> int:
 
     meta_path = session / meta_name
     video_template = session / video_name
-    gps_path = session / gps_name
+    gps_template = session / gps_name
     started = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
     meta_path.write_text(
         json.dumps(
@@ -214,7 +214,8 @@ def main() -> int:
         encoding="utf-8",
     )
     log.info(
-        "Session %s — config=%s segment_duration_sec=%s (0 = single camera.mp4; >0 = camera_000001.mp4, …)",
+        "Session %s — config=%s segment_duration_sec=%s "
+        "(video: camera_*.mp4; GPS: gps_*.jsonl when segmenting)",
         session.name,
         args.config.resolve(),
         segment_duration_sec,
@@ -234,7 +235,7 @@ def main() -> int:
     if not args.no_gps:
         gps_thread = threading.Thread(
             target=gps_writer_thread,
-            args=(gps_path, stop, cfg, args.mock_gps, log),
+            args=(gps_template, segment_duration_sec, stop, cfg, args.mock_gps, log),
             name="gps-writer",
             daemon=True,
         )

@@ -35,7 +35,7 @@ recording:
   gps_probe_timeout_sec: 45
   fps: 15
   duration_sec: 0
-  # Split camera into multiple files every N seconds (0 = one camera.mp4 per session). If this key is omitted, code defaults to 60s.
+  # Split camera (mp4) and GPS (jsonl) into multiple files every N seconds (0 = one file each per session). Omitted key defaults to 60s in code.
   segment_duration_sec: 60
   video_filename: "camera.mp4"
   gps_filename: "gps.jsonl"

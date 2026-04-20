@@ -28,7 +28,7 @@ from app.device_connectivity import (
     resolve_connectivity_log_paths,
 )
 from app.recording_gps_writer import gps_jsonl_writer_loop
-from app.recording_paths import session_dir_with_day
+from app.recording_paths import resolve_segment_duration_sec, session_dir_with_day
 
 
 def _load_config(path: Path) -> dict:
@@ -46,6 +46,12 @@ def main() -> int:
         default=None,
         help="Override recording.duration_sec (0 = until Ctrl+C)",
     )
+    parser.add_argument(
+        "--segment-sec",
+        type=float,
+        default=None,
+        help="Override recording.segment_duration_sec for GPS JSONL chunks (0 = single gps.jsonl)",
+    )
     args = parser.parse_args()
 
     cfg = _load_config(args.config)
@@ -61,6 +67,7 @@ def main() -> int:
     gps_probe_timeout_sec = float(rec.get("gps_probe_timeout_sec", 45))
     gps_name = str(rec.get("gps_filename", "gps.jsonl"))
     meta_name = str(rec.get("session_meta_filename", "session.json"))
+    segment_duration_sec = resolve_segment_duration_sec(rec, args.segment_sec)
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     log = logging.getLogger("record-gps")
@@ -100,7 +107,7 @@ def main() -> int:
     )
 
     meta_path = session / meta_name
-    gps_path = session / gps_name
+    gps_template = session / gps_name
     started = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
     meta_path.write_text(
         json.dumps(
@@ -110,6 +117,7 @@ def main() -> int:
                 "mode": "gps_only",
                 "config": str(args.config.resolve()),
                 "duration_sec": duration_sec,
+                "segment_duration_sec": segment_duration_sec,
                 "mock_gps": args.mock_gps,
                 "session_dir": str(session),
             },
@@ -136,7 +144,7 @@ def main() -> int:
     if hasattr(signal, "SIGTERM"):
         signal.signal(signal.SIGTERM, handle_sig)
 
-    ok = gps_jsonl_writer_loop(gps_path, cfg, args.mock_gps, log, should_stop)
+    ok = gps_jsonl_writer_loop(gps_template, segment_duration_sec, cfg, args.mock_gps, log, should_stop)
     if not ok:
         return 1
 

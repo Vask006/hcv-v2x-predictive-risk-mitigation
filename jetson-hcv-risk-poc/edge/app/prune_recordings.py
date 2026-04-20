@@ -1,6 +1,6 @@
 """
-Delete recorded video files older than ``recording.retention_days_video`` under
-``recording.output_base``. Intended for cron/systemd timer on the edge device.
+Delete recorded video (mp4/avi) and segmented GPS JSONL older than
+``recording.retention_days_video`` under ``recording.output_base``.
 
 Run from ``edge/``:
   python -m app.prune_recordings --config config/default.yaml
@@ -25,13 +25,21 @@ from app.recording_paths import resolve_recording_output_base
 _VIDEO_SUFFIXES = frozenset({".mp4", ".avi"})
 
 
+def _is_session_gps_jsonl(path: Path) -> bool:
+    """Session ``gps.jsonl`` / ``gps_000001.jsonl`` — not connectivity logs."""
+    if path.suffix.lower() != ".jsonl":
+        return False
+    n = path.name
+    return n == "gps.jsonl" or (n.startswith("gps_") and n.endswith(".jsonl"))
+
+
 def _load_config(path: Path) -> dict:
     with path.open("r", encoding="utf-8") as f:
         return yaml.safe_load(f)
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Remove old recording video files (mp4/avi).")
+    parser = argparse.ArgumentParser(description="Remove old recording videos and GPS JSONL session files.")
     parser.add_argument("--config", type=Path, default=_EDGE_ROOT / "config" / "default.yaml")
     parser.add_argument(
         "--days",
@@ -73,7 +81,8 @@ def main() -> int:
     for path in sorted(root.rglob("*")):
         if not path.is_file():
             continue
-        if path.suffix.lower() not in _VIDEO_SUFFIXES:
+        suf = path.suffix.lower()
+        if suf not in _VIDEO_SUFFIXES and not _is_session_gps_jsonl(path):
             continue
         try:
             st = path.stat()

@@ -90,8 +90,20 @@ def _read_last_json_line(path: Path) -> dict[str, Any] | None:
     return None
 
 
+def _latest_gps_recording(recording_root: Path, gps_filename: str) -> Path | None:
+    """Newest session GPS file: ``gps.jsonl`` or segmented ``gps_*.jsonl``."""
+    stem = Path(gps_filename).stem
+    candidates: list[Path] = []
+    candidates.extend(recording_root.glob(f"**/{stem}.jsonl"))
+    candidates.extend(recording_root.glob(f"**/{stem}_*.jsonl"))
+    if not candidates:
+        return None
+    candidates.sort(key=lambda p: p.stat().st_mtime, reverse=True)
+    return candidates[0]
+
+
 def _latest_gps_fix(recording_root: Path, gps_name: str) -> dict[str, Any] | None:
-    gps_file = _latest_file(f"**/{gps_name}", recording_root)
+    gps_file = _latest_gps_recording(recording_root, gps_name)
     if gps_file is None:
         return None
     return _read_last_json_line(gps_file)

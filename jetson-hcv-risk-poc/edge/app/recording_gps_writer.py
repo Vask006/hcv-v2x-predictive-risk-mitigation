@@ -1,4 +1,4 @@
-"""GPS NMEA → JSONL file (one line per fix). Used standalone or beside camera recording."""
+"""GPS NMEA → JSONL file(s); segmented like video when ``segment_duration_sec`` > 0."""
 from __future__ import annotations
 
 import json
@@ -8,6 +8,8 @@ import time
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
+
+from app.recording_paths import initial_gps_path, numbered_gps_path
 
 
 def _write_fix_row(out_path: Path, fix: object) -> None:
@@ -23,19 +25,45 @@ def _write_fix_row(out_path: Path, fix: object) -> None:
         f.write(json.dumps(row, ensure_ascii=False) + "\n")
 
 
-def gps_jsonl_writer_loop(
+def _rotate_gps_segment_if_needed(
+    gps_template: Path,
+    segment_duration_sec: float,
+    segment_start: float,
+    segment_idx: int,
     out_path: Path,
+    log: logging.Logger,
+) -> tuple[Path, float, int]:
+    if segment_duration_sec <= 0:
+        return out_path, segment_start, segment_idx
+    if (time.monotonic() - segment_start) < segment_duration_sec:
+        return out_path, segment_start, segment_idx
+    next_idx = segment_idx + 1
+    new_path = numbered_gps_path(gps_template, next_idx)
+    log.info("Rotated GPS JSONL segment -> %s", new_path)
+    return new_path, time.monotonic(), next_idx
+
+
+def gps_jsonl_writer_loop(
+    gps_template: Path,
+    segment_duration_sec: float,
     cfg: dict[str, Any],
     mock_gps: bool,
     log: logging.Logger,
     should_stop: Callable[[], bool],
 ) -> bool:
     """
-    Block until ``should_stop()`` is true. Writes fixes to ``out_path``.
-    For mock GPS, yields between batches so CPU stays reasonable.
+    Block until ``should_stop()`` is true. Writes fixes under ``gps_template`` naming:
+    one ``gps.jsonl`` if ``segment_duration_sec == 0``, else ``gps_000001.jsonl``, …
+    rotating on the same schedule as camera segments.
 
     Returns False if recording stopped due to an error.
     """
+    seg = float(segment_duration_sec)
+    out_path = initial_gps_path(gps_template, seg)
+    segment_start = time.monotonic()
+    segment_idx = 1 if seg > 0 else 0
+    log.info("GPS JSONL -> %s (segment_duration_sec=%s)", out_path, seg)
+
     try:
         if mock_gps:
             from gps_service.reader import mock_fixes
@@ -45,6 +73,9 @@ def gps_jsonl_writer_loop(
                 for fix in mock_fixes(20):
                     if should_stop():
                         return True
+                    out_path, segment_start, segment_idx = _rotate_gps_segment_if_needed(
+                        gps_template, seg, segment_start, segment_idx, out_path, log
+                    )
                     _write_fix_row(out_path, fix)
                 time.sleep(0.2)
             return True
@@ -62,6 +93,9 @@ def gps_jsonl_writer_loop(
                 for fix in reader.iter_lines(max_lines=None):
                     if should_stop():
                         break
+                    out_path, segment_start, segment_idx = _rotate_gps_segment_if_needed(
+                        gps_template, seg, segment_start, segment_idx, out_path, log
+                    )
                     _write_fix_row(out_path, fix)
             finally:
                 reader.close()
@@ -72,12 +106,13 @@ def gps_jsonl_writer_loop(
 
 
 def gps_writer_thread(
-    out_path: Path,
+    gps_template: Path,
+    segment_duration_sec: float,
     stop: threading.Event,
     cfg: dict[str, Any],
     mock_gps: bool,
     log: logging.Logger,
 ) -> None:
-    """Target for ``threading.Thread`` alongside camera recording (same JSONL logic as standalone)."""
+    """Target for ``threading.Thread`` alongside camera recording."""
 
-    gps_jsonl_writer_loop(out_path, cfg, mock_gps, log, stop.is_set)
+    gps_jsonl_writer_loop(gps_template, segment_duration_sec, cfg, mock_gps, log, stop.is_set)
