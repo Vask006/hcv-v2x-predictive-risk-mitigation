@@ -14,9 +14,9 @@ camera:
   # gstream_pipeline: "nvarguscamerasrc ! ..."
 
 gps:
-  # Must match your receiver: run `ls /dev/ttyUSB* /dev/ttyACM*` — many USB GPS modules use ttyACM0.
+  # Must match your receiver: run `ls /dev/ttyUSB* /dev/ttyACM*`. USB CDC GPS often uses ttyACM0; FTDI-style uses ttyUSB0.
   # Windows: COM3 etc. Linux user should be in group "dialout".
-  port: "/dev/ttyUSB0"
+  port: "/dev/ttyACM0"
   baud: 9600
   timeout_sec: 1.0
 
