@@ -20,3 +20,6 @@ fi
 sudo systemctl daemon-reload
 echo "Done. Restart: sudo systemctl restart hcv-record.service"
 echo "Verify: systemctl cat hcv-record.service | grep ExecStart"
+echo ""
+echo "This unit records camera + GPS into one session folder. If you use split units, stop them first:"
+echo "  sudo systemctl disable --now hcv-gps-record.service hcv-camera-record.service 2>/dev/null || true"

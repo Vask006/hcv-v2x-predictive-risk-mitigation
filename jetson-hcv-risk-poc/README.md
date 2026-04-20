@@ -69,7 +69,7 @@ python -m app.phase0_smoke --no-camera --mock-gps
 
 ### Edge recording (camera file + GPS JSONL on disk)
 
-Writes under `edge/data/recordings/<UTC-timestamp>/` by default (`camera.mp4` or `camera.avi`, `gps.jsonl`, `session.json`).  
+Writes under `edge/data/recordings/<YYYY-MM-DD>/<session-UTC>/` by default (`camera*.mp4`, `gps*.jsonl`, `session.json`).  
 Set `recording.output_base` in `config/default.yaml` to an absolute path (for example an SSD mount on Jetson).
 
 ```bash
@@ -81,11 +81,11 @@ python -m app.record_session --config config/default.yaml --mock-gps
 Use real USB GPS (set `gps.port` in config): omit `--mock-gps`. Stop with Ctrl+C or set `recording.duration_sec` in YAML.
 For production/vehicle runs, set `recording.gps_optional: false` to fail fast if GPS serial is missing.
 
-**Camera only (no GPS probe, no `gps.jsonl`):** `python -m app.record_session --config config/camera_only.yaml` or `--no-gps`, or set `recording.camera_only: true` in your YAML. On the Jetson, either point `HCV_CONFIG` at `config/camera_only.yaml` in `/etc/default/hcv-record`, or set `HCV_CAMERA_ONLY=1` there while keeping `HCV_CONFIG` on `default.yaml`. Prefer the dedicated `hcv-camera-record.service` if you want GPS and camera as separate systemd units.
+**Camera only (no GPS probe, no `gps.jsonl`):** `python -m app.record_session --config config/camera_only.yaml` or `--no-gps`, or set `recording.camera_only: true` in your YAML. On the Jetson with `hcv-record.service`, point `HCV_CONFIG` at `config/camera_only.yaml` in `/etc/default/hcv-record`, or set `HCV_CAMERA_ONLY=1` while keeping `HCV_CONFIG` on `default.yaml`. Use `hcv-camera-record.service` only when you intentionally want **camera-only** sessions (no GPS file in that folder).
 
 ### Auto-start recording on boot (Jetson)
 
-Each run creates a **new UTC timestamp folder** under `recording.output_base` (see `edge/config/default.yaml`). GPS rows include `wall_utc` per fix in `gps.jsonl`.
+**`hcv-record.service`** runs `record_session`: each boot cycle creates **one** session directory under `recording.output_base` (see `edge/config/default.yaml`) containing **both** aligned camera video and `gps.jsonl` (plus `session.json`). GPS rows include `wall_utc` per fix. Do not enable `hcv-camera-record` / `hcv-gps-record` alongside it if you need video and GPS in the same folder — those units each start their **own** session directory.
 
 1. Clone repo once on the board, create venv, `pip install -r edge/requirements.txt`, and set `gps.port` / `recording.output_base` as needed.
 2. Make the start script executable: `chmod +x edge/deploy/hcv-record-start.sh`
@@ -102,9 +102,9 @@ sudo systemctl start hcv-record.service
 
 Logs: `journalctl -u hcv-record.service -f` · Stop until next boot: `sudo systemctl stop hcv-record.service`
 
-### Auto-start with separate camera and GPS services (recommended)
+### Auto-start with separate camera and GPS services (optional)
 
-If you want failures isolated (camera failure does not stop GPS, GPS failure does not stop camera), use two systemd services.
+Use **`hcv-camera-record.service`** and **`hcv-gps-record.service`** only when you want **independent** processes (e.g. camera failure should not stop GPS logging). Each service creates its **own** timestamped session folder, so video and GPS files are **not** co-located. For one folder with both, use **`hcv-record.service`** above.
 
 1. Make start scripts executable:
 

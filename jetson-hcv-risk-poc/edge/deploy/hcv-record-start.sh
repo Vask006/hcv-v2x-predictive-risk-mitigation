@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Start camera + GPS recording after boot. Paths are derived from this script's location.
+# Start combined recording: camera video + GPS JSONL in one session directory (record_session).
+# Output: recording.output_base in YAML (default edge/data/recordings/<date>/<UTC-session>/).
 set -euo pipefail
 
 EDGE_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

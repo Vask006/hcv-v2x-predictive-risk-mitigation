@@ -26,6 +26,7 @@ phase0:
   frame_interval_sec: 0.5
 
 # Local recording -> edge/data/recordings/ (relative to edge/). Override with an absolute path if needed.
+# Jetson: hcv-record.service runs record_session — one session folder gets camera*.mp4 + gps*.jsonl + session.json.
 recording:
   output_base: "data/recordings"
   # JSON lines: probe results and session lifecycle (split so camera and GPS services do not contend on one file).

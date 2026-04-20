@@ -1,3 +1,9 @@
+# Combined camera + GPS: one UTC session folder under recording.output_base (YAML), e.g.
+#   data/recordings/YYYY-MM-DD/YYYY-MM-DDTHH-MM-SSZ/
+# containing session.json, camera*.mp4, gps*.jsonl (names from recording.video_filename / gps_filename).
+#
+# Do not run hcv-gps-record nor hcv-camera-record at the same time — each starts its own session folder.
+#
 # Install on Jetson (edit User + paths to match your login and clone location):
 #   ExecStart uses /bin/bash so the .sh file does not need chmod +x after git pull.
 #   sudo install -m 755 deploy/hcv-record-start.sh /opt/hcv-edge/hcv-record-start.sh
@@ -9,11 +15,10 @@
 #   sudo systemctl start hcv-record.service
 #
 # Logs: journalctl -u hcv-record.service -f
-# Recordings: see recording.output_base in config (default: edge/data/recordings/<UTC>/)
 # Optional /etc/default/hcv-record: HCV_CONFIG, HCV_BOOT_DELAY_SEC, HCV_CAMERA_ONLY=1, HCV_SEGMENT_SEC=60
 
 [Unit]
-Description=HCV camera and GPS recording (timestamped sessions)
+Description=HCV camera + GPS recording (one session folder: video + JSONL)
 After=multi-user.target network-online.target
 Wants=network-online.target
 

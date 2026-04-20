@@ -1,8 +1,14 @@
 # Copy to /etc/default/hcv-record and adjust.
-# Recommended in vehicle power setups: 30-45 seconds.
+# This unit runs record_session: camera + GPS in the SAME session folder (session.json, camera*.mp4, gps*.jsonl).
+# For GPS-only or camera-only with separate folders, use hcv-gps-record / hcv-camera-record instead — not together with this unit.
+#
+# Recommended in vehicle power setups: 30-45 seconds boot delay so USB enumerates.
 # HCV_BOOT_DELAY_SEC=30
 # HCV_CONFIG=/home/isha/hcv-v2x-predictive-risk-mitigation/jetson-hcv-risk-poc/edge/config/default.yaml
 #
 # Camera-only debugging (no GPS serial, no mock GPS file):
 #   HCV_CAMERA_ONLY=1
 # or point HCV_CONFIG at .../edge/config/camera_only.yaml (recording.camera_only: true).
+#
+# Optional segment length override (seconds; 0 = one mp4 + one jsonl per session):
+# HCV_SEGMENT_SEC=60

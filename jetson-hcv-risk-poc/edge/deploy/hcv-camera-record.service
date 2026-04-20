@@ -1,3 +1,5 @@
+# Camera-only: creates its own session folder with camera*.mp4 (no GPS). For camera+GPS in ONE folder, use hcv-record.service instead.
+#
 # Install on Jetson (edit User/Group/WorkingDirectory/ExecStart for your paths):
 #   chmod +x edge/deploy/hcv-camera-record-start.sh
 #   sudo cp edge/deploy/hcv-camera-record.service /etc/systemd/system/
@@ -8,7 +10,7 @@
 # Logs: journalctl -u hcv-camera-record.service -f
 
 [Unit]
-Description=HCV camera-only recording
+Description=HCV camera-only recording (separate session folder; use hcv-record for camera+GPS together)
 After=multi-user.target network-online.target
 Wants=network-online.target
 
