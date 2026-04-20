@@ -1,16 +1,15 @@
 """
-Record camera to video file(s) and GPS fixes to JSONL on local disk (Jetson / workstation).
+Orchestrate a recording session: one folder, camera video + optional GPS JSONL.
 
-Output layout: ``data/recordings/<YYYY-MM-DD>/<session-UTC>/`` (one calendar-day folder).
-Optional ``recording.segment_duration_sec`` splits video into ``camera_000001.mp4``, … so an
-abrupt stop only risks truncating the current segment.
+Camera capture lives in ``app.recording_video``; GPS streaming in ``app.recording_gps_writer``.
+Combined here so vehicle runs get time-aligned files in a single session directory.
+
+Output layout: ``data/recordings/<YYYY-MM-DD>/<session-UTC>/``.
 
 Run from `edge/`:
   python -m app.record_session --config config/default.yaml
 
-Stop with Ctrl+C or after duration_sec (config). Use --mock-gps if no serial GPS.
-Set recording.camera_only: true in YAML (or HCV_CAMERA_ONLY=1 via
-deploy/hcv-record-start.sh) to skip GPS probe and recording — same as --no-gps.
+For camera-only or GPS-only CLIs, use ``app.record_camera`` or ``app.record_gps`` instead.
 """
 from __future__ import annotations
 
@@ -36,79 +35,14 @@ from app.device_connectivity import (
     probe_gps,
     resolve_connectivity_log_paths,
 )
-from app.recording_paths import initial_video_path, numbered_video_path, session_dir_with_day
+from app.recording_gps_writer import gps_writer_thread
+from app.recording_paths import session_dir_with_day
+from app.recording_video import run_camera_recording_loop
 
 
 def _load_config(path: Path) -> dict:
     with path.open("r", encoding="utf-8") as f:
         return yaml.safe_load(f)
-
-
-def _open_video_writer(
-    path: Path, fps: float, size: tuple[int, int]
-) -> tuple[object, Path]:
-    import cv2  # type: ignore
-
-    w, h = size
-    fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-    writer = cv2.VideoWriter(str(path), fourcc, fps, (w, h))
-    if writer.isOpened():
-        return writer, path
-    path_avi = path.with_suffix(".avi")
-    fourcc = cv2.VideoWriter_fourcc(*"MJPG")
-    writer = cv2.VideoWriter(str(path_avi), fourcc, fps, (w, h))
-    if not writer.isOpened():
-        raise RuntimeError("Could not open VideoWriter (tried mp4v and MJPG/avi)")
-    return writer, path_avi
-
-
-def _gps_thread(
-    out_path: Path,
-    stop: threading.Event,
-    cfg: dict,
-    mock_gps: bool,
-    log: logging.Logger,
-) -> None:
-    def write_fix(fix: object) -> None:
-        row = {
-            "wall_utc": fix.wall_time_utc_iso,
-            "mono_s": fix.monotonic_s,
-            "latitude_deg": fix.latitude_deg,
-            "longitude_deg": fix.longitude_deg,
-            "fix_quality": fix.fix_quality,
-            "raw": (fix.raw_sentence or "")[:500],
-        }
-        with out_path.open("a", encoding="utf-8") as f:
-            f.write(json.dumps(row, ensure_ascii=False) + "\n")
-
-    try:
-        if mock_gps:
-            from gps_service.reader import mock_fixes
-
-            while not stop.is_set():
-                for fix in mock_fixes(20):
-                    if stop.is_set():
-                        return
-                    write_fix(fix)
-        else:
-            from gps_service.reader import GPSReader
-
-            g = cfg.get("gps", {})
-            port = str(g.get("port", "/dev/ttyUSB0"))
-            baud = int(g.get("baud", 9600))
-            timeout = float(g.get("timeout_sec", 1.0))
-            reader = GPSReader(port, baud, timeout)
-            reader.open()
-            log.info("GPS serial open %s baud=%s", port, baud)
-            try:
-                for fix in reader.iter_lines(max_lines=None):
-                    if stop.is_set():
-                        break
-                    write_fix(fix)
-            finally:
-                reader.close()
-    except Exception as e:
-        log.error("GPS recording thread ended: %s", e)
 
 
 def main() -> int:
@@ -295,75 +229,28 @@ def main() -> int:
 
     if not args.no_gps:
         gps_thread = threading.Thread(
-            target=_gps_thread,
+            target=gps_writer_thread,
             args=(gps_path, stop, cfg, args.mock_gps, log),
             name="gps-writer",
             daemon=True,
         )
         gps_thread.start()
 
-    writer = None
-    actual_video_path: Path | None = None
-    frames = 0
-    t0 = time.monotonic()
-
     try:
         if not args.no_camera:
-            from camera_service.capture import CameraCapture, CaptureError
-
-            cam_cfg = cfg.get("camera", {})
-            pipeline = cam_cfg.get("gstream_pipeline")
-            idx = int(cam_cfg.get("index", 0))
-            cap = CameraCapture(
-                index=idx,
-                pipeline=pipeline,
-                backend=str(cam_cfg.get("backend", "opencv")),
+            cam_code, _frames, _path = run_camera_recording_loop(
+                cfg,
+                video_template,
+                fps,
+                segment_duration_sec,
+                duration_sec,
+                stop,
+                log,
             )
-            cap.open()
-            try:
-                _meta0, frame0 = cap.read_frame()
-                h, w = frame0.shape[:2]
-                first_path = initial_video_path(video_template, segment_duration_sec)
-                writer, actual_video_path = _open_video_writer(first_path, fps, (w, h))
-                segment_start = time.monotonic()
-                segment_idx = 1 if segment_duration_sec > 0 else 0
-                log.info("Writing video -> %s", actual_video_path)
-                writer.write(frame0)
-                frames = 1
-
-                period = 1.0 / fps if fps > 0 else 0.0
-                t0 = time.monotonic()
-                next_t = t0 + period
-
-                while not stop.is_set():
-                    if duration_sec > 0 and (time.monotonic() - t0) >= duration_sec:
-                        break
-                    _meta, frame = cap.read_frame()
-                    if segment_duration_sec > 0 and (time.monotonic() - segment_start) >= segment_duration_sec:
-                        writer.release()
-                        segment_idx += 1
-                        next_seg = numbered_video_path(video_template, segment_idx)
-                        writer, actual_video_path = _open_video_writer(next_seg, fps, (w, h))
-                        log.info("Rotated video segment -> %s", actual_video_path)
-                        segment_start = time.monotonic()
-                    writer.write(frame)
-                    frames += 1
-                    now = time.monotonic()
-                    if period > 0:
-                        sleep = next_t - now
-                        if sleep > 0:
-                            time.sleep(sleep)
-                        next_t += period
-                    else:
-                        next_t = now
-            except CaptureError as e:
-                log.error("Camera failed: %s", e)
-                return 1
-            finally:
-                cap.close()
+            if cam_code != 0:
+                return cam_code
         else:
             log.info("camera skipped (--no-camera); GPS only until stop or duration")
-            t0 = time.monotonic()
             if gps_thread:
                 if duration_sec > 0:
                     time.sleep(duration_sec)
@@ -372,9 +259,6 @@ def main() -> int:
                         time.sleep(0.5)
     finally:
         stop.set()
-        if writer is not None:
-            writer.release()
-            log.info("Wrote %s frames to %s", frames, actual_video_path)
         if gps_thread is not None:
             gps_thread.join(timeout=30.0)
 

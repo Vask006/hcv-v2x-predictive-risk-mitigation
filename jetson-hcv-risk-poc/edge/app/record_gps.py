@@ -11,6 +11,7 @@ import json
 import logging
 import signal
 import sys
+import threading
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -26,6 +27,7 @@ from app.device_connectivity import (
     probe_gps,
     resolve_connectivity_log_paths,
 )
+from app.recording_gps_writer import gps_jsonl_writer_loop
 from app.recording_paths import session_dir_with_day
 
 
@@ -116,68 +118,26 @@ def main() -> int:
         encoding="utf-8",
     )
 
-    stop = False
-
-    def handle_sig(*_a: object) -> None:
-        nonlocal stop
-        log.info("stop signal")
-        stop = True
-
-    signal.signal(signal.SIGINT, handle_sig)
-    if hasattr(signal, "SIGTERM"):
-        signal.signal(signal.SIGTERM, handle_sig)
-
+    stop_ev = threading.Event()
     start_t = time.monotonic()
 
     def should_stop() -> bool:
-        if stop:
+        if stop_ev.is_set():
             return True
         if duration_sec <= 0:
             return False
         return (time.monotonic() - start_t) >= duration_sec
 
-    def write_fix(fix: object) -> None:
-        row = {
-            "wall_utc": fix.wall_time_utc_iso,
-            "mono_s": fix.monotonic_s,
-            "latitude_deg": fix.latitude_deg,
-            "longitude_deg": fix.longitude_deg,
-            "fix_quality": fix.fix_quality,
-            "raw": (fix.raw_sentence or "")[:500],
-        }
-        with gps_path.open("a", encoding="utf-8") as f:
-            f.write(json.dumps(row, ensure_ascii=False) + "\n")
+    def handle_sig(*_a: object) -> None:
+        log.info("stop signal")
+        stop_ev.set()
 
-    try:
-        if args.mock_gps:
-            from gps_service.reader import mock_fixes
+    signal.signal(signal.SIGINT, handle_sig)
+    if hasattr(signal, "SIGTERM"):
+        signal.signal(signal.SIGTERM, handle_sig)
 
-            log.info("GPS mock mode enabled")
-            while not should_stop():
-                for fix in mock_fixes(20):
-                    if should_stop():
-                        break
-                    write_fix(fix)
-                time.sleep(0.2)
-        else:
-            from gps_service.reader import GPSReader
-
-            g = cfg.get("gps", {})
-            port = str(g.get("port", "/dev/ttyUSB0"))
-            baud = int(g.get("baud", 9600))
-            timeout = float(g.get("timeout_sec", 1.0))
-            reader = GPSReader(port, baud, timeout)
-            reader.open()
-            log.info("GPS serial open %s baud=%s", port, baud)
-            try:
-                for fix in reader.iter_lines(max_lines=None):
-                    if should_stop():
-                        break
-                    write_fix(fix)
-            finally:
-                reader.close()
-    except (RuntimeError, OSError, ValueError) as e:
-        log.error("GPS recording failed: %s", e)
+    ok = gps_jsonl_writer_loop(gps_path, cfg, args.mock_gps, log, should_stop)
+    if not ok:
         return 1
 
     log.info("gps session complete -> %s", session)

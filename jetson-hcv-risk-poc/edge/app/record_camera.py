@@ -1,5 +1,5 @@
 """
-Record camera frames to local video file only.
+Record camera frames to local video file only (see ``app.recording_video`` for capture logic).
 
 Run from `edge/`:
   python -m app.record_camera --config config/default.yaml
@@ -11,7 +11,7 @@ import json
 import logging
 import signal
 import sys
-import time
+import threading
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -26,32 +26,13 @@ from app.device_connectivity import (
     probe_camera,
     resolve_connectivity_log_paths,
 )
-from app.recording_paths import initial_video_path, numbered_video_path, session_dir_with_day
+from app.recording_paths import session_dir_with_day
+from app.recording_video import run_camera_recording_loop
 
 
 def _load_config(path: Path) -> dict:
     with path.open("r", encoding="utf-8") as f:
         return yaml.safe_load(f)
-
-
-def _open_video_writer(
-    path: Path, fps: float, size: tuple[int, int]
-) -> tuple[object, Path]:
-    # OpenCV Python wheels may not expose full typing metadata for these members.
-    # pylint: disable=no-member
-    import cv2  # type: ignore
-
-    w, h = size
-    fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-    writer = cv2.VideoWriter(str(path), fourcc, fps, (w, h))
-    if writer.isOpened():
-        return writer, path
-    path_avi = path.with_suffix(".avi")
-    fourcc = cv2.VideoWriter_fourcc(*"MJPG")
-    writer = cv2.VideoWriter(str(path_avi), fourcc, fps, (w, h))
-    if not writer.isOpened():
-        raise RuntimeError("Could not open VideoWriter (tried mp4v and MJPG/avi)")
-    return writer, path_avi
 
 
 def main() -> int:
@@ -141,79 +122,27 @@ def main() -> int:
         encoding="utf-8",
     )
 
-    stop = False
+    stop = threading.Event()
 
     def handle_sig(*_a: object) -> None:
-        nonlocal stop
         log.info("stop signal")
-        stop = True
+        stop.set()
 
     signal.signal(signal.SIGINT, handle_sig)
     if hasattr(signal, "SIGTERM"):
         signal.signal(signal.SIGTERM, handle_sig)
 
-    from camera_service.capture import CameraCapture, CaptureError
-
-    writer = None
-    actual_video_path: Path | None = None
-    frames = 0
-    t0 = time.monotonic()
-
-    try:
-        cam_cfg = cfg.get("camera", {})
-        pipeline = cam_cfg.get("gstream_pipeline")
-        idx = int(cam_cfg.get("index", 0))
-        cap = CameraCapture(
-            index=idx,
-            pipeline=pipeline,
-            backend=str(cam_cfg.get("backend", "opencv")),
-        )
-        cap.open()
-        try:
-            _meta0, frame0 = cap.read_frame()
-            h, w = frame0.shape[:2]
-            first_path = initial_video_path(video_template, segment_duration_sec)
-            writer, actual_video_path = _open_video_writer(first_path, fps, (w, h))
-            segment_start = time.monotonic()
-            segment_idx = 1 if segment_duration_sec > 0 else 0
-            log.info("Writing camera video -> %s", actual_video_path)
-            writer.write(frame0)
-            frames = 1
-
-            period = 1.0 / fps if fps > 0 else 0.0
-            t0 = time.monotonic()
-            next_t = t0 + period
-
-            while not stop:
-                if duration_sec > 0 and (time.monotonic() - t0) >= duration_sec:
-                    break
-                _meta, frame = cap.read_frame()
-                if segment_duration_sec > 0 and (time.monotonic() - segment_start) >= segment_duration_sec:
-                    writer.release()
-                    segment_idx += 1
-                    next_seg = numbered_video_path(video_template, segment_idx)
-                    writer, actual_video_path = _open_video_writer(next_seg, fps, (w, h))
-                    log.info("Rotated video segment -> %s", actual_video_path)
-                    segment_start = time.monotonic()
-                writer.write(frame)
-                frames += 1
-                now = time.monotonic()
-                if period > 0:
-                    sleep = next_t - now
-                    if sleep > 0:
-                        time.sleep(sleep)
-                    next_t += period
-                else:
-                    next_t = now
-        finally:
-            cap.close()
-    except CaptureError as e:
-        log.error("Camera failed: %s", e)
-        return 1
-    finally:
-        if writer is not None:
-            writer.release()
-            log.info("Wrote %s frames to %s", frames, actual_video_path)
+    code, _frames, _path = run_camera_recording_loop(
+        cfg,
+        video_template,
+        fps,
+        segment_duration_sec,
+        duration_sec,
+        stop,
+        log,
+    )
+    if code != 0:
+        return code
 
     log.info("camera session complete -> %s", session)
     return 0
