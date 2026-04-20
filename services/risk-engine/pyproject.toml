@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hcv-risk-engine"
+version = "0.1.0"
+description = "Phase 1 rule-based risk engine for HCV edge (see services/risk-engine/README.md)"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = []
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+py-modules = ["risk_models", "risk_rules", "risk_engine"]

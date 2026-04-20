@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hcv-risk.local/schemas/edge_event_v1.json",
+  "title": "HCVEdgeRiskEventV1",
+  "description": "Geo-tagged risk event emitted by the edge device (Phase 1). Aligned with jetson-hcv-risk-poc/contracts/event_v1.json for ingest compatibility; update both together until a single generator owns the schema.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "event_id",
+    "device_id",
+    "recorded_at",
+    "gps",
+    "risk"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "event_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique id for idempotent ingest."
+    },
+    "device_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Stable edge device identifier."
+    },
+    "recorded_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Event time in UTC (RFC 3339)."
+    },
+    "gps": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["latitude_deg", "longitude_deg"],
+      "properties": {
+        "latitude_deg": { "type": "number", "minimum": -90, "maximum": 90 },
+        "longitude_deg": { "type": "number", "minimum": -180, "maximum": 180 },
+        "altitude_m": { "type": ["number", "null"] },
+        "speed_mps": { "type": ["number", "null"] },
+        "course_deg": { "type": ["number", "null"], "minimum": 0, "maximum": 360 },
+        "fix_quality": { "type": ["integer", "null"], "minimum": 0 },
+        "hdop": { "type": ["number", "null"] },
+        "satellites": { "type": ["integer", "null"], "minimum": 0 }
+      }
+    },
+    "risk": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["score", "band", "reason_codes"],
+      "properties": {
+        "score": { "type": "number", "minimum": 0, "maximum": 1 },
+        "band": {
+          "type": "string",
+          "enum": ["none", "low", "medium", "high", "critical"]
+        },
+        "reason_codes": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Machine-readable reasons, e.g. perception.nearest_object_close."
+        }
+      }
+    },
+    "perception_summary": {
+      "type": ["object", "null"],
+      "additionalProperties": true
+    },
+    "media": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "properties": {
+        "thumbnail_uri": { "type": ["string", "null"] },
+        "clip_uri": { "type": ["string", "null"] }
+      }
+    }
+  }
+}

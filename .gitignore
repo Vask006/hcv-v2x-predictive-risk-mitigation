@@ -1,1 +1,10 @@
 .cursor/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Local pipeline runs (keep directory via .gitkeep)
+outputs/*.json

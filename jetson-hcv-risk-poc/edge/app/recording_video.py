@@ -1,4 +1,11 @@
-"""Camera capture and segmented video file writing (OpenCV VideoWriter)."""
+"""Camera capture and segmented video file writing (OpenCV VideoWriter).
+
+Recording imports ``camera_service.capture.CameraCapture`` — that module is the
+stable edge facade: in a monorepo checkout it already loads ``OpenCVCameraReader``
+from ``services/camera-service/src`` (see ``edge/camera_service/capture.py``).
+Future work is packaging (``pip install -e``) to drop ``sys.path`` injection, not
+replacing this import site.
+"""
 from __future__ import annotations
 
 import logging

@@ -1,4 +1,10 @@
-"""GPS NMEA → JSONL file(s); segmented like video when ``segment_duration_sec`` > 0."""
+"""GPS NMEA → JSONL file(s); segmented like video when ``segment_duration_sec`` > 0.
+
+NMEA parsing and serial iteration already go through ``gps_service.reader`` (which
+delegates to ``services/gps-service/src`` when the monorepo is present). A later
+step would be optional alignment of JSONL rows with shared event contracts, not
+re-wiring the reader import here (on-disk format is a separate risk).
+"""
 from __future__ import annotations
 
 import json

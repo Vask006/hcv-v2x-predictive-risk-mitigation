@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hcv-camera-service"
+version = "0.1.0"
+description = "Phase 1 OpenCV/GStreamer camera capture for HCV edge (see services/camera-service/README.md)"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+opencv = ["opencv-python-headless>=4.8"]
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+py-modules = ["camera_models", "camera_reader", "camera_service"]

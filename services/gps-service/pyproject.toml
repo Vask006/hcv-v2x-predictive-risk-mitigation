@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hcv-gps-service"
+version = "0.1.0"
+description = "Phase 1 NMEA GNSS reader for HCV edge (see services/gps-service/README.md)"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+serial = ["pyserial>=3.5"]
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+py-modules = ["gps_models", "gps_reader", "gps_service"]

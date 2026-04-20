@@ -1,0 +1,7 @@
+{
+  "curve_ahead": true,
+  "road_surface": "wet",
+  "hazard_context_01": 0.45,
+  "weather_risk_01": 0.35,
+  "infrastructure_risk_01": 0.15
+}
