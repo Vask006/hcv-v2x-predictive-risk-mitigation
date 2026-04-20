@@ -1,0 +1,35 @@
+{
+  "eventId": "evt-2026-04-19-001",
+  "vehicleId": "HCV-DEMO-001",
+  "tripId": "trip-2026-04-19-001",
+  "timestamp": "2026-04-19T09:15:04Z",
+  "edgeObservations": {
+    "camera": {
+      "laneStabilityScore": 0.42,
+      "visibilityScore": 0.68
+    },
+    "motion": {
+      "harshBraking": false,
+      "lateralInstability": true
+    },
+    "gps": {
+      "speedKph": 72,
+      "curveAheadMeters": 180
+    }
+  },
+  "externalContext": {
+    "v2iWarning": "slippery-road-ahead",
+    "weatherHazard": "wet-surface",
+    "riskZone": "high-risk-corridor-a"
+  },
+  "riskAssessment": {
+    "riskScore": 0.81,
+    "severity": "high",
+    "hazardType": "rollover_or_loss_of_control_proxy"
+  },
+  "mitigation": {
+    "driverAlert": "Reduce speed immediately",
+    "fleetNotification": true,
+    "recommendedAction": "slow-down-and-increase-following-distance"
+  }
+}
