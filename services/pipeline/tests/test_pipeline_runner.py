@@ -49,3 +49,47 @@ def test_gps_jsonl_tail_overrides_mock(tmp_path: Path) -> None:
     out = pipe.run_once()
     echo = out["inputsEcho"]["gpsSample"]
     assert echo.get("source") == "jsonl_tail"
+
+
+def test_pipeline_runs_with_v2x_event(tmp_path: Path) -> None:
+    install_service_import_paths()
+    v2x_path = Path(__file__).resolve().parents[2] / "v2x-simulator" / "examples" / "v2i_curve_warning.json"
+    pipe = EventPipeline(
+        vehicle_id="veh-v2x",
+        trip_id="trip-v2x",
+        output_dir=tmp_path,
+        external_context_path=None,
+        v2x_event_path=v2x_path,
+        mock_gps=True,
+        mock_camera=True,
+        gps_wait_sec=1.0,
+    )
+    out = pipe.run_once()
+    assert out["inputsEcho"]["v2xEvent"] is not None
+    assert out["inputsEcho"]["v2xContext"] is not None
+    assert "v2x.v2i_curve_warning" in out["riskEvent"]["reasonCodes"]
+
+
+def test_v2x_event_increases_context_risk(tmp_path: Path) -> None:
+    install_service_import_paths()
+    base = EventPipeline(
+        vehicle_id="veh-base",
+        output_dir=tmp_path,
+        external_context_path=None,
+        mock_gps=True,
+        mock_camera=True,
+        gps_wait_sec=1.0,
+    ).run_once()
+    v2x_path = Path(__file__).resolve().parents[2] / "v2x-simulator" / "examples" / "v2v_hard_brake_ahead.json"
+    with_v2x = EventPipeline(
+        vehicle_id="veh-v2x",
+        output_dir=tmp_path,
+        external_context_path=None,
+        v2x_event_path=v2x_path,
+        mock_gps=True,
+        mock_camera=True,
+        gps_wait_sec=1.0,
+    ).run_once()
+    base_score = float(base["riskEvent"]["riskAssessment"]["riskScore"])
+    v2x_score = float(with_v2x["riskEvent"]["riskAssessment"]["riskScore"])
+    assert v2x_score >= base_score

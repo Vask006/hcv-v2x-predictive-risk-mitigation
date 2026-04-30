@@ -1,13 +1,24 @@
 .cursor/
+.venv/
 
 # Python
 __pycache__/
 *.py[cod]
 *$py.class
 .pytest_cache/
+.coverage
+htmlcov/
+*.log
 
 # Local pipeline runs (keep directory via .gitkeep)
 outputs/*.json
 
 # Local cloud API database
 services/cloud-api/server/data/
+services/cloud-api/server/data/*.db
+
+# Environment files
+.env
+
+# OS clutter
+.DS_Store

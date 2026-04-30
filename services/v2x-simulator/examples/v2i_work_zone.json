@@ -1,0 +1,12 @@
+{
+  "event_id": "evt-v2i-workzone-001",
+  "event_type": "V2I_WORK_ZONE",
+  "source": "sim.v2i",
+  "timestamp": "2026-04-29T12:00:00.000000Z",
+  "latitude_deg": 48.1004,
+  "longitude_deg": 11.5004,
+  "distance_m": 200.0,
+  "confidence_01": 0.73,
+  "severity_01": 0.76,
+  "description": "Roadside unit reports active work zone."
+}

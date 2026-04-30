@@ -1,31 +1,43 @@
 # cloud-api
 
+This service provides the local demo implementation and is designed for extension.
+
 ## Purpose
 
-Cloud ingress package with:
+Provide a local cloud ingestion API and a client adapter for pipeline output delivery.
 
-- `src/adapter.py`: maps pipeline output (`riskEvent`) into `EventV1` request shape.
-- `src/client.py`: stdlib HTTP client for posting events.
-- `server/`: FastAPI ingest API and persistence layer.
+## Inputs
 
-## Run API server
+- `EventV1` JSON via `POST /v1/events`
+- query parameters for retrieval via `GET /v1/events`
 
-From service directory:
+## Outputs
+
+- persisted event records (SQLite by default)
+- health and list endpoints for dashboard/demo usage
+
+## Run
 
 ```bash
 cd services/cloud-api/server
 python -m uvicorn main:app --host 127.0.0.1 --port 8000
 ```
 
-## Pipeline ingest
+## Environment
 
-```bash
-python services/pipeline/src/pipeline_runner.py --no-external-context --post-ingest --ingest-base-url http://127.0.0.1:8000
-```
+- `HCV_DATABASE_URL` or `DATABASE_URL`
+- `HCV_CORS_ORIGINS` or `CORS_ORIGINS`
+- `HCV_ENABLE_RESET` or `ENABLE_RESET`
 
-## Tests
+## Test
 
 ```bash
 cd services/cloud-api
 python -m pytest tests -q
+```
+
+## Example Ingest
+
+```bash
+python services/pipeline/src/pipeline_runner.py --no-external-context --post-ingest --ingest-base-url http://127.0.0.1:8000
 ```

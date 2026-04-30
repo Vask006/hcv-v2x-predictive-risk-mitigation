@@ -18,7 +18,7 @@ app = FastAPI(title="HCV Risk API", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=os.getenv("CORS_ORIGINS", "*").split(","),
+    allow_origins=os.getenv("HCV_CORS_ORIGINS", os.getenv("CORS_ORIGINS", "*")).split(","),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -32,7 +32,7 @@ def _startup() -> None:
 
 @app.get("/health")
 def health() -> dict[str, str]:
-    return {"status": "ok"}
+    return {"status": "ok", "service": "cloud-api", "version": "1.0.0"}
 
 
 @app.post("/v1/events", response_model=EventV1Response)
@@ -80,12 +80,12 @@ def list_events(
             lon = float(gps.get("longitude_deg", 0.0))
             row["context_enrichment"] = build_mock_context(r.recorded_at, lat=lat, lon=lon)
         items.append(row)
-    return {"items": items}
+    return {"items": items, "count": len(items), "limit": limit}
 
 
 @app.delete("/v1/events/{event_id}")
 def delete_event(event_id: UUID, db: Session = Depends(get_db)) -> dict[str, bool]:
-    if os.getenv("ENABLE_RESET") != "1":
+    if os.getenv("HCV_ENABLE_RESET", os.getenv("ENABLE_RESET", "0")) != "1":
         raise HTTPException(status_code=404, detail="not found")
     key = str(event_id)
     row = db.get(EventRecord, key)

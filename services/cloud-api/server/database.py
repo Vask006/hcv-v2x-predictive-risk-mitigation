@@ -17,7 +17,7 @@ def _default_sqlite_url() -> str:
 
 
 def _database_url() -> str:
-    return os.getenv("DATABASE_URL", _default_sqlite_url())
+    return os.getenv("HCV_DATABASE_URL") or os.getenv("DATABASE_URL", _default_sqlite_url())
 
 
 DATABASE_URL = _database_url()

@@ -1,48 +1,40 @@
 # services/pipeline
 
+This service provides the local demo implementation and is designed for extension.
+
 ## Purpose
 
-Single-run local orchestration that combines:
+Orchestrate GPS, camera, telemetry normalization, V2X context enrichment, risk scoring, and optional cloud ingestion.
 
-1. GPS input (`gps-service`)
-2. Camera metadata (`camera-service`)
-3. Optional external context JSON
-4. Risk scoring (`risk-engine`)
-5. JSON sink output under `outputs/`
+## Inputs
 
-## Run locally
+- GPS sample (mock, serial path, or JSONL tail)
+- Camera sample (mock or live capture)
+- optional external context JSON
+- optional V2X event JSON (`--v2x-event`)
 
-From repository root:
+## Outputs
 
-```bash
-python scripts/run_local_pipeline.py
-```
+- Combined JSON payload with:
+  - `riskEvent`
+  - `inputsEcho` including `v2xEvent` and `v2xContext` when provided
+- Output artifact under `outputs/`
 
-Equivalent direct command:
+## Run
 
 ```bash
 python services/pipeline/src/pipeline_runner.py --no-external-context
+python services/pipeline/src/pipeline_runner.py --no-external-context --v2x-event services/v2x-simulator/examples/v2i_curve_warning.json
 ```
 
-Run tests:
+## Test
 
 ```bash
 cd services/pipeline
 python -m pytest tests -q
 ```
 
-## Output
+## Limitations
 
-Each execution writes `outputs/pipeline_run_<UTCstamp>_<8hex>.json` with:
-
-- `pipelineVersion`: `local-v1`
-- `riskEvent`: risk payload from `risk-engine`
-- `inputsEcho`: GPS, camera, and context trace
-
-## Optional ingest
-
-If cloud API is running:
-
-```bash
-python services/pipeline/src/pipeline_runner.py --no-external-context --post-ingest --ingest-base-url http://127.0.0.1:8000
-```
+- Uses deterministic local orchestration, not distributed runtime scheduling.
+- Sensor and V2X sources are simulation-friendly by default for laptop execution.

@@ -22,15 +22,17 @@ def install_service_import_paths(start: Path | None = None) -> Path:
         cam = root / "services" / "camera-service" / "src"
         gps = root / "services" / "gps-service" / "src"
         risk = root / "services" / "risk-engine" / "src"
-        if cam.is_dir() and gps.is_dir() and risk.is_dir():
-            for p in (risk, gps, cam):
+        telemetry = root / "services" / "telemetry-service" / "src"
+        v2x = root / "services" / "v2x-simulator" / "src"
+        if cam.is_dir() and gps.is_dir() and risk.is_dir() and telemetry.is_dir() and v2x.is_dir():
+            for p in (v2x, telemetry, risk, gps, cam):
                 s = str(p)
                 if s not in sys.path:
                     sys.path.insert(0, s)
             _REPO_ROOT = root
             return root
     raise RuntimeError(
-        "Cannot find services/camera-service/src, gps-service/src, and risk-engine/src in parents of "
+        "Cannot find required service src directories in parents of "
         f"{here}. Run from the hcv-v2x-predictive-risk-mitigation repo checkout."
     )
 
@@ -146,6 +148,7 @@ class EventPipeline:
         trip_id: str | None = None,
         output_dir: Path | None = None,
         external_context_path: Path | None = None,
+        v2x_event_path: Path | None = None,
         gps_jsonl_path: Path | None = None,
         mock_gps: bool = True,
         mock_camera: bool = True,
@@ -157,6 +160,7 @@ class EventPipeline:
         self.trip_id = trip_id
         self.output_dir = output_dir or (repo_root() / "outputs")
         self.external_context_path = external_context_path
+        self.v2x_event_path = v2x_event_path
         self.gps_jsonl_path = gps_jsonl_path
         self.mock_gps = mock_gps
         self.mock_camera = mock_camera
@@ -199,13 +203,50 @@ class EventPipeline:
 
     def run_once(self) -> dict[str, Any]:
         from risk_engine import RiskEngine
+        from risk_models import ExternalContext
+        from telemetry_service import TelemetryService
+        from v2x_event_generator import merge_contexts
+        from v2x_service import V2XSimulatorService
 
         gps_ev, gps_fields = self.obtain_gps_event()
         cam_ev = self.obtain_camera_event()
         ext = self.load_external_context()
 
-        lane, cam_ok = camera_sample_to_lane_and_health(cam_ev)
-        edge = _edge_from_gps_fields(gps_fields, lane, cam_ok)
+        telemetry = TelemetryService().normalize(
+            vehicle_id=self.vehicle_id,
+            trip_id=self.trip_id,
+            gps=gps_fields,
+            camera=(cam_ev.as_dict() if cam_ev is not None else None),
+            timestamp=gps_fields.get("wall_time_utc_iso"),
+        )
+        cam_data = telemetry.camera.as_dict() if telemetry.camera else {}
+        lane = cam_data.get("lane_stability_01")
+        cam_ok = cam_data.get("healthy")
+        if lane is None and cam_ok is not None:
+            lane, cam_ok = camera_sample_to_lane_and_health(cam_ev)
+        edge = _edge_from_gps_fields(telemetry.gps.as_dict() if telemetry.gps else gps_fields, lane, cam_ok)
+
+        v2x_event_dict: dict[str, Any] | None = None
+        v2x_context_dict: dict[str, Any] | None = None
+        v2x_reason_codes: list[str] = []
+        ext_dict = {k: v for k, v in asdict(ext).items() if v is not None}
+        if self.v2x_event_path is not None:
+            if not self.v2x_event_path.is_file():
+                raise ValueError(f"V2X event file not found: {self.v2x_event_path}")
+            svc = V2XSimulatorService()
+            ev = svc.load_event(self.v2x_event_path)
+            ctx = svc.to_context(ev)
+            v2x_event_dict = ev.as_dict()
+            v2x_context_dict = ctx.as_dict()
+            merged = merge_contexts(ext_dict, ctx)
+            v2x_reason_codes = list(merged.get("v2x_reason_codes", []))
+            ext = ExternalContext(
+                curve_ahead=merged.get("curve_ahead"),
+                road_surface=merged.get("road_surface"),
+                hazard_context_01=merged.get("hazard_context_01"),
+                weather_risk_01=merged.get("weather_risk_01"),
+                infrastructure_risk_01=merged.get("infrastructure_risk_01"),
+            )
 
         engine = RiskEngine(self.risk_config or {})
         payload = engine.assess(
@@ -214,6 +255,7 @@ class EventPipeline:
             edge=edge,
             context=ext,
         )
+        payload.reason_codes.extend([c for c in v2x_reason_codes if c not in payload.reason_codes])
         out = {
             "pipelineVersion": "local-v1",
             "riskEvent": payload.as_dict(),
@@ -221,6 +263,8 @@ class EventPipeline:
                 "gpsSample": gps_ev.as_dict() if gps_ev is not None else {"source": "jsonl_tail", "row": gps_fields},
                 "cameraSample": cam_ev.as_dict() if cam_ev is not None else None,
                 "externalContext": {k: v for k, v in asdict(ext).items() if v is not None},
+                "v2xEvent": v2x_event_dict,
+                "v2xContext": v2x_context_dict,
             },
         }
         return out

@@ -1,79 +1,57 @@
-# Architecture Diagram
+# Architecture
 
 ## High-Level Architecture
 
 ```mermaid
 flowchart LR
-    A[Onboard Vehicle Unit] --> B[Edge Intelligence Layer]
-    C[V2X Inputs / Simulation] --> B
-    D[Maps / Weather / Infrastructure Context] --> E[Cloud Predictive Platform]
-    B --> E
-    E --> F[Fleet Dashboard]
-    E --> G[Mitigation Engine]
-    G --> H[Driver Alert / Recommendation]
-    G --> I[Fleet Alert / Policy Response]
-
-    subgraph OBU[Onboard Vehicle Unit]
-        A1[Camera]
-        A2[GPS]
-        A3[Vehicle Telemetry]
-        A4[Driver / Motion Signals]
-    end
-
-    subgraph EDGE[Edge Intelligence]
-        B1[Event Normalization]
-        B2[Sensor Fusion]
-        B3[Local Risk Scoring]
-        B4[Hazard Detection]
-    end
-
-    subgraph V2X[V2X Communication]
-        C1[V2V]
-        C2[V2I]
-        C3[V2N]
-        C4[V2P Optional]
-    end
-
-    subgraph CLOUD[Cloud Platform]
-        E1[Event Ingestion API]
-        E2[Risk Correlation]
-        E3[Trip / Fleet Analytics]
-        E4[Policy Evaluation]
-    end
-
-    A1 --> B1
-    A2 --> B1
-    A3 --> B1
-    A4 --> B1
-    B1 --> B2 --> B3 --> B4
-    C1 --> B2
-    C2 --> B2
-    C3 --> E1
-    C4 --> B2
-    B4 --> E1
-    D --> E2
-    E1 --> E2 --> E3 --> E4
+  GPS[GPS Service] --> TEL[Telemetry Service]
+  CAM[Camera Service] --> TEL
+  V2X[V2X Simulator] --> PIPE[Event Pipeline]
+  TEL --> PIPE
+  PIPE --> RISK[Risk Engine]
+  RISK --> API[Cloud API]
+  API --> DASH[Dashboard]
+  RISK --> OUT[Demo Output JSON]
 ```
 
-## Current Implementation View
+## Local Demo Sequence
 
 ```mermaid
-flowchart LR
-    G[GPS Service] --> T[Telemetry Service]
-    C[Camera Service] --> T
-    V[V2X Simulator] --> R[Risk Engine]
-    T --> R
-    R --> A[Cloud API]
-    R --> D[Dashboard / Logs]
-    A --> D
+sequenceDiagram
+  participant G as GPS Service
+  participant C as Camera Service
+  participant T as Telemetry Service
+  participant V as V2X Simulator
+  participant P as Pipeline
+  participant R as Risk Engine
+  participant A as Cloud API
+  participant D as Dashboard
+
+  G->>T: GPS sample
+  C->>T: Camera sample
+  V->>P: V2X event JSON
+  T->>P: Normalized telemetry
+  P->>R: EdgeObservations + ExternalContext
+  R-->>P: RiskEventPayload + mitigation
+  P->>A: POST /v1/events (optional)
+  A-->>D: GET /v1/events
+  P-->>P: write outputs/demo_run_*.json
 ```
 
-## Planned Service Boundaries
+## Data Contract Overview
 
-- `camera-service`: frame capture and derived event metadata
-- `gps-service`: route, speed, heading, and timestamp ingestion
-- `telemetry-service`: normalized event contracts
-- `risk-engine`: local scoring and hazard classification
-- `v2x-simulator`: cooperative safety event injection for validation flows
-- `cloud-api`: ingestion endpoint and fleet-side aggregation
-- `dashboard`: visualization of trips, alerts, and mitigation outputs
+- `telemetry-service` outputs `NormalizedTelemetryEvent`.
+- `risk-engine` consumes normalized edge/context and outputs `riskEvent`.
+- `cloud-api` ingests `EventV1` through adapter mapping.
+- `dashboard` reads ingested payloads and extracts risk/mitigation fields defensively.
+
+## Edge/Cloud Responsibility Split
+
+- **Edge side**: GPS, camera, telemetry normalization, V2X mapping, risk scoring, output artifact creation.
+- **Cloud side**: event ingestion, persistence, event retrieval, simple enrichment for review.
+- **Simulated V2X**: reproducible cooperative context for demo and test runs.
+- **Dashboard**: local fleet-review surface for latest risk state and event table.
+
+## Future Jetson Deployment
+
+Current implementation is laptop-friendly by default and supports optional hardware paths. Jetson adaptation can preserve service boundaries by replacing mock sensor inputs with live sensor adapters and adding deployment packaging.

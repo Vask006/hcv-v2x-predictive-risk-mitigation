@@ -1,0 +1,12 @@
+{
+  "event_id": "evt-v2v-brake-001",
+  "event_type": "V2V_HARD_BRAKE_AHEAD",
+  "source": "sim.v2v",
+  "timestamp": "2026-04-29T12:00:00.000000Z",
+  "latitude_deg": 48.1002,
+  "longitude_deg": 11.5002,
+  "distance_m": 85.0,
+  "confidence_01": 0.74,
+  "severity_01": 0.83,
+  "description": "Vehicle ahead reported hard braking."
+}

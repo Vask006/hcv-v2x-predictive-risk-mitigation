@@ -1,0 +1,12 @@
+{
+  "event_id": "evt-v2n-weather-001",
+  "event_type": "V2N_WEATHER_ALERT",
+  "source": "sim.v2n",
+  "timestamp": "2026-04-29T12:00:00.000000Z",
+  "latitude_deg": 48.1003,
+  "longitude_deg": 11.5003,
+  "distance_m": 300.0,
+  "confidence_01": 0.69,
+  "severity_01": 0.77,
+  "description": "Weather system indicates slippery conditions."
+}

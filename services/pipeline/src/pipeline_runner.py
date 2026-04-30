@@ -49,6 +49,12 @@ def main() -> int:
         default=None,
         help="JSON file for ExternalContext fields (default: services/pipeline/examples/external_context_sample.json if present).",
     )
+    parser.add_argument(
+        "--v2x-event",
+        type=Path,
+        default=None,
+        help="Path to a V2X event JSON file from services/v2x-simulator/examples.",
+    )
     parser.add_argument("--no-external-context", action="store_true", help="Skip external context file.")
     parser.add_argument(
         "--output-dir",
@@ -87,12 +93,17 @@ def main() -> int:
         trip_id=args.trip_id,
         output_dir=out_dir,
         external_context_path=ext_path,
+        v2x_event_path=args.v2x_event,
         gps_jsonl_path=args.gps_jsonl,
         mock_gps=mock_gps,
         mock_camera=mock_camera,
         gps_wait_sec=gps_wait,
     )
-    combined = pipe.run_once()
+    try:
+        combined = pipe.run_once()
+    except ValueError as exc:
+        print(f"Pipeline input error: {exc}", file=sys.stderr)
+        return 2
     path = write_sink(combined, out_dir)
     print(json.dumps(combined, ensure_ascii=False, indent=2))
     print(f"\nWrote: {path}", file=sys.stderr)

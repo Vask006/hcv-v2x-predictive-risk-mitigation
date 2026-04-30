@@ -1,0 +1,9 @@
+pytest
+fastapi
+uvicorn
+sqlalchemy
+pydantic
+requests
+pyserial
+opencv-python
+streamlit

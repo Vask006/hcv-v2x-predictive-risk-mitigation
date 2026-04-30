@@ -1,0 +1,12 @@
+{
+  "event_id": "evt-v2p-vru-001",
+  "event_type": "V2P_VULNERABLE_USER_ZONE",
+  "source": "sim.v2p",
+  "timestamp": "2026-04-29T12:00:00.000000Z",
+  "latitude_deg": 48.1005,
+  "longitude_deg": 11.5005,
+  "distance_m": 60.0,
+  "confidence_01": 0.82,
+  "severity_01": 0.79,
+  "description": "Vulnerable road user activity detected near vehicle path."
+}
