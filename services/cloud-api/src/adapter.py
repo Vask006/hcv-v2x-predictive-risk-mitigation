@@ -1,11 +1,5 @@
 """
-Map ``services/pipeline`` combined output (camelCase ``riskEvent``) → POC ``EventV1`` JSON (snake_case).
-
-The FastAPI app in ``jetson-hcv-risk-poc/cloud/api`` validates bodies with ``schemas.EventV1``;
-it does **not** accept the pipeline's analytics shape unchanged — use this adapter on the client
-before ``POST /v1/events``.
-
-See ``services/cloud-api/README.md`` for field-level mismatches.
+Map ``services/pipeline`` combined output (camelCase ``riskEvent``) to ``EventV1`` JSON (snake_case).
 """
 from __future__ import annotations
 
@@ -43,11 +37,7 @@ def _recorded_at(ts: str | None) -> datetime:
 
 
 def combined_pipeline_to_event_v1(combined: dict[str, Any]) -> dict[str, Any]:
-    """
-    Build a dict suitable as JSON body for ``POST .../v1/events`` on the existing POC API.
-
-    Expects ``combined`` like ``EventPipeline.run_once()`` output (``riskEvent`` + optional ``inputsEcho``).
-    """
+    """Build a JSON body for ``POST /v1/events`` from pipeline output."""
     risk = combined.get("riskEvent") or combined
     if not isinstance(risk, dict):
         raise TypeError("combined['riskEvent'] must be a dict")

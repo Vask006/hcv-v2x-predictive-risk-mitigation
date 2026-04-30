@@ -1,4 +1,4 @@
-"""GNSS fix and normalized sample types (Phase 1; no speculative coordinate transforms)."""
+"""GNSS fix and normalized sample types."""
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -10,7 +10,7 @@ GpsValidity = Literal["valid", "void", "unknown"]
 
 @dataclass
 class GpsFix:
-    """One parsed fix (NMEA or mock). Field names match POC ``GPSFix`` for JSONL / callers."""
+    """One parsed fix (NMEA or mock)."""
 
     wall_time_utc_iso: str
     monotonic_s: float

@@ -1,8 +1,5 @@
 """
-Phase 1 local event pipeline: GPS + camera (+ optional JSON context) → risk-engine → sink.
-
-Does not import or modify ``jetson-hcv-risk-poc``; it only mirrors ideas (JSONL tail read)
-from ``edge/app/edge_runtime.py`` for optional file-based GPS.
+Local event pipeline: GPS + camera (+ optional JSON context) -> risk-engine -> sink.
 """
 from __future__ import annotations
 
@@ -46,7 +43,7 @@ def repo_root() -> Path:
 
 
 def read_last_json_object(path: Path) -> dict[str, Any] | None:
-    """Last non-empty JSON line in a file (same pattern as POC ``edge_runtime`` GPS tail)."""
+    """Return the last non-empty JSON object line from a file."""
     try:
         lines = path.read_text(encoding="utf-8").splitlines()
     except OSError:
@@ -75,7 +72,7 @@ def load_external_context_file(path: Path) -> Any:
 
 
 def jsonl_row_to_gps_fields(row: dict[str, Any]) -> dict[str, Any]:
-    """Map POC ``gps.jsonl`` row keys to ``EdgeObservations`` field names."""
+    """Map ``gps.jsonl`` row keys to ``EdgeObservations`` field names."""
     return {
         "wall_time_utc_iso": row.get("wall_utc") or row.get("wall_time_utc_iso"),
         "monotonic_s": row.get("mono_s") if row.get("mono_s") is not None else row.get("monotonic_s"),
@@ -218,7 +215,7 @@ class EventPipeline:
             context=ext,
         )
         out = {
-            "pipelineVersion": "phase1-local-1",
+            "pipelineVersion": "local-v1",
             "riskEvent": payload.as_dict(),
             "inputsEcho": {
                 "gpsSample": gps_ev.as_dict() if gps_ev is not None else {"source": "jsonl_tail", "row": gps_fields},

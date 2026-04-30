@@ -1,4 +1,4 @@
-"""Pydantic models aligned with contracts/event_v1.json."""
+"""Pydantic request/response schemas for cloud ingest."""
 
 from __future__ import annotations
 

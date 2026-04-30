@@ -1,4 +1,4 @@
-"""Typed camera metadata for Phase 1 (no ML perception)."""
+"""Typed camera metadata models."""
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -9,7 +9,7 @@ CameraSourceKind = Literal["live_index", "gstreamer", "file_replay"]
 
 @dataclass(frozen=True)
 class FrameSample:
-    """One captured frame timing + geometry (POC-compatible field names)."""
+    """One captured frame timing and geometry sample."""
 
     wall_time_utc_iso: str
     monotonic_s: float
@@ -30,13 +30,13 @@ class CameraHealth:
 
 @dataclass
 class CameraSampleEvent:
-    """Normalized sample: metadata + health + source (Phase 1 contract, not event_v1 GPS)."""
+    """Normalized camera sample with metadata, health, and source."""
 
     meta: FrameSample
     source_kind: CameraSourceKind
     healthy: bool
     health: CameraHealth
-    # TODO(phase2): optional numpy frame reference or shared-memory handle; keep Phase 1 dict-friendly.
+    # Future extension: optional frame reference or shared-memory handle.
     extra: dict[str, Any] = field(default_factory=dict)
 
     def as_dict(self) -> dict[str, Any]:

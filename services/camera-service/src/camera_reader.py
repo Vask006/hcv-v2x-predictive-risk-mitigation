@@ -20,7 +20,7 @@ def _utc_wall() -> str:
 class OpenCVCameraReader:
     """Live camera (index or GStreamer pipeline) or file replay via ``video_path``.
 
-    Behavior matches ``jetson-hcv-risk-poc/edge/camera_service/capture.py`` (Phase 0/1)
+    Handles live device capture, replay file capture, and GStreamer pipeline capture.
     for live paths. File replay uses ``cv2.VideoCapture(path)`` when ``video_path`` is set.
     """
 

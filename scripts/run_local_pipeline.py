@@ -1,14 +1,10 @@
 #!/usr/bin/env python3
-"""Run the Phase 1 local pipeline once: mock GPS + synthetic camera (no OpenCV / pyserial).
+"""Run the local pipeline once with mock GPS and synthetic camera input.
 
 Usage (repository root):
 
-    python scripts/run_phase1_mock.py
-    python scripts/run_phase1_mock.py --vehicle-id my-dev
-
-Extra arguments are appended and passed through to ``pipeline_runner.py`` (e.g.
-``--vehicle-id x``). Avoid passing a second ``--no-external-context`` unless you
-intend to duplicate the flag.
+    python scripts/run_local_pipeline.py
+    python scripts/run_local_pipeline.py --vehicle-id edge-dev-1
 """
 from __future__ import annotations
 

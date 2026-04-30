@@ -1,4 +1,4 @@
-"""Minimal ingest + query API (Phase 0)."""
+"""Cloud ingest and query API."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ from database import EventRecord, get_db, init_db
 from enrichment import build_mock_context
 from schemas import EventV1, EventV1Response
 
-app = FastAPI(title="HCV Risk API", version="0.1.0")
+app = FastAPI(title="HCV Risk API", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -83,12 +83,8 @@ def list_events(
     return {"items": items}
 
 
-# Tests / dev: optional reset (disabled unless ENABLE_RESET=1)
 @app.delete("/v1/events/{event_id}")
-def delete_event(
-    event_id: UUID,
-    db: Session = Depends(get_db),
-) -> dict[str, bool]:
+def delete_event(event_id: UUID, db: Session = Depends(get_db)) -> dict[str, bool]:
     if os.getenv("ENABLE_RESET") != "1":
         raise HTTPException(status_code=404, detail="not found")
     key = str(event_id)

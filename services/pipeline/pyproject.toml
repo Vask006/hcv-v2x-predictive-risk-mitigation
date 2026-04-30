@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "hcv-pipeline"
 version = "0.1.0"
-description = "Phase 1 local orchestration for camera + GPS + risk-engine (see services/pipeline/README.md)"
+description = "Local orchestration for camera, GPS, and risk engine services"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = []

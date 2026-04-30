@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""CLI entry: one-shot Phase 1 pipeline (console + ``outputs/`` JSON)."""
+"""CLI entry: one-shot local pipeline (console + ``outputs/`` JSON)."""
 from __future__ import annotations
 
 import argparse
@@ -20,7 +20,7 @@ def _default_external_context() -> Path | None:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Phase 1 local pipeline (camera + GPS + risk → sink).")
+    parser = argparse.ArgumentParser(description="Local pipeline (camera + GPS + risk -> sink).")
     parser.add_argument(
         "--live-camera",
         action="store_true",
@@ -41,7 +41,7 @@ def main() -> int:
         "--gps-jsonl",
         type=Path,
         default=None,
-        help="Use last JSON line from a POC-style gps.jsonl (overrides mock GPS position when file exists).",
+        help="Use last JSON line from gps.jsonl (overrides mock GPS position when file exists).",
     )
     parser.add_argument(
         "--external-context",
@@ -61,13 +61,13 @@ def main() -> int:
     parser.add_argument(
         "--post-ingest",
         action="store_true",
-        help="After run, map combined output to EventV1 and POST to existing POC FastAPI /v1/events.",
+        help="After run, map combined output to EventV1 and POST to cloud API /v1/events.",
     )
     parser.add_argument(
         "--ingest-base-url",
         type=str,
         default="http://127.0.0.1:8000",
-        help="Base URL for POC cloud API (uvicorn main:app).",
+        help="Base URL for cloud API (uvicorn main:app).",
     )
     parser.add_argument("--ingest-api-key", type=str, default="", help="Optional X-API-Key header.")
     args = parser.parse_args()

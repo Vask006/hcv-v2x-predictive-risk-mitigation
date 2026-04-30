@@ -1,4 +1,4 @@
-"""Phase 1 camera service: config → reader → normalized ``CameraSampleEvent``."""
+"""Camera service: config -> reader -> normalized ``CameraSampleEvent``."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -28,7 +28,7 @@ class CameraServiceConfig:
 
     @classmethod
     def from_camera_yaml(cls, camera: Mapping[str, Any]) -> CameraServiceConfig:
-        # Optional replay path (not in default POC YAML; supported for bench / CI).
+        # Optional replay path for bench and CI runs.
         vp = camera.get("replay_video_path") or camera.get("video_path")
         return cls(
             index=int(camera.get("index", 0)),

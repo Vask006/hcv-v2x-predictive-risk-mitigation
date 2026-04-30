@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://hcv-risk.local/schemas/edge_event_v1.json",
   "title": "HCVEdgeRiskEventV1",
-  "description": "Geo-tagged risk event emitted by the edge device (Phase 1). Aligned with jetson-hcv-risk-poc/contracts/event_v1.json for ingest compatibility; update both together until a single generator owns the schema.",
+  "description": "Geo-tagged risk event emitted by the edge device for cloud ingest compatibility.",
   "type": "object",
   "additionalProperties": false,
   "required": [

@@ -8,3 +8,6 @@ __pycache__/
 
 # Local pipeline runs (keep directory via .gitkeep)
 outputs/*.json
+
+# Local cloud API database
+services/cloud-api/server/data/

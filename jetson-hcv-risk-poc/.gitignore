@@ -1,9 +1,0 @@
-__pycache__/
-*.py[cod]
-.Python
-.venv/
-venv/
-.env
-*.db
-cloud/api/data/
-edge/data/

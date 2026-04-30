@@ -1,4 +1,4 @@
-"""Phase 1 typed inputs and risk event payload (analytics-shaped, not ``event_v1``)."""
+"""Typed inputs and risk event payload (analytics-shaped, not ``event_v1``)."""
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
@@ -36,7 +36,7 @@ class ExternalContext:
 
 @dataclass
 class RiskEngineConfig:
-    """Tunable Phase 1 thresholds (transparent defaults)."""
+    """Tunable thresholds with transparent defaults."""
 
     # Speed above this (m/s) counts as "high" for compound environmental rule (~90 km/h).
     high_speed_mps: float = 25.0
@@ -44,7 +44,7 @@ class RiskEngineConfig:
     lane_stability_reduced_below: float = 0.55
     # Above this hazard_context contributes to R2.
     hazard_context_elevated_above: float = 0.40
-    # Band edges for severity (same spirit as POC ``risk_engine.bands``).
+    # Band edges for severity.
     severity_low: float = 0.20
     severity_medium: float = 0.45
     severity_high: float = 0.70

@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "hcv-cloud-api-adapters"
 version = "0.1.0"
-description = "Phase 1 client adapter for POC FastAPI ingest (see services/cloud-api/README.md)"
+description = "Cloud ingest adapter and API client package"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = []

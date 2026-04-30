@@ -1,4 +1,4 @@
-"""Phase 1 risk engine: normalized edge + context → ``RiskEventPayload``."""
+"""Risk engine: normalized edge + context -> ``RiskEventPayload``."""
 from __future__ import annotations
 
 from dataclasses import fields

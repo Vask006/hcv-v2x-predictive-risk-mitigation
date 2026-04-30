@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "hcv-camera-service"
 version = "0.1.0"
-description = "Phase 1 OpenCV/GStreamer camera capture for HCV edge (see services/camera-service/README.md)"
+description = "OpenCV and GStreamer camera capture service for edge ingestion"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = []

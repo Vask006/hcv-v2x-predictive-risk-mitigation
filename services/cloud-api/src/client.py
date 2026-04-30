@@ -1,4 +1,4 @@
-"""Minimal HTTP client for ``POST /v1/events`` (stdlib only; mirrors POC ``edge/uploader/client.py``)."""
+"""Minimal stdlib HTTP client for ``POST /v1/events``."""
 from __future__ import annotations
 
 import json
@@ -25,7 +25,7 @@ def post_event_v1(
     """
     POST an ``EventV1``-shaped dict (e.g. from ``adapter.combined_pipeline_to_event_v1``).
 
-    ``body`` must use **snake_case** keys matching ``jetson-hcv-risk-poc/cloud/api/schemas.EventV1``.
+    ``body`` must use snake_case keys matching the cloud API ``EventV1`` schema.
     """
     root = base_url.rstrip("/")
     p = path if path.startswith("/") else f"/{path}"

@@ -7,7 +7,7 @@ from adapter import combined_pipeline_to_event_v1
 
 def test_adapter_maps_pipeline_to_event_v1_shape() -> None:
     combined = {
-        "pipelineVersion": "phase1-local-1",
+        "pipelineVersion": "local-v1",
         "riskEvent": {
             "eventId": "12345678-1234-5678-1234-567812345678",
             "vehicleId": "veh-a",

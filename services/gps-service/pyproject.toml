@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "hcv-gps-service"
 version = "0.1.0"
-description = "Phase 1 NMEA GNSS reader for HCV edge (see services/gps-service/README.md)"
+description = "NMEA GNSS reader service for edge telemetry ingestion"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = []

@@ -1,4 +1,4 @@
-"""Phase 1 GPS service: YAML-friendly config, serial vs mock, ``GpsSampleEvent`` wrapper."""
+"""GPS service: YAML-friendly config, serial vs mock, ``GpsSampleEvent`` wrapper."""
 from __future__ import annotations
 
 import time
@@ -10,7 +10,7 @@ from gps_reader import GpsReaderError, GpsSerialReader, mock_fixes
 
 
 class GpsServiceConfig:
-    """``gps:`` section from POC YAML."""
+    """Serializable GPS configuration block."""
 
     __slots__ = ("port", "baud", "timeout_sec", "mock_gps")
 

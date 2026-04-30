@@ -55,7 +55,7 @@ flowchart LR
     E1 --> E2 --> E3 --> E4
 ```
 
-## Phase 1 Implementation View
+## Current Implementation View
 
 ```mermaid
 flowchart LR
@@ -74,6 +74,6 @@ flowchart LR
 - `gps-service`: route, speed, heading, and timestamp ingestion
 - `telemetry-service`: normalized event contracts
 - `risk-engine`: local scoring and hazard classification
-- `v2x-simulator`: cooperative safety event injection for POC use
+- `v2x-simulator`: cooperative safety event injection for validation flows
 - `cloud-api`: ingestion endpoint and fleet-side aggregation
 - `dashboard`: visualization of trips, alerts, and mitigation outputs

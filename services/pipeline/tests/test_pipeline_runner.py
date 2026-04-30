@@ -25,7 +25,7 @@ def test_pipeline_run_once_mock_writes_json(tmp_path: Path) -> None:
     path = write_sink(out, tmp_path)
     assert path.is_file()
     loaded = json.loads(path.read_text(encoding="utf-8"))
-    assert loaded["pipelineVersion"] == "phase1-local-1"
+    assert loaded["pipelineVersion"] == "local-v1"
 
 
 def test_gps_jsonl_tail_overrides_mock(tmp_path: Path) -> None:

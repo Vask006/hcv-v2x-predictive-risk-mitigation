@@ -30,7 +30,7 @@ def _parse_nmea_coord(raw: str, hemi: str) -> float | None:
     return val
 
 
-# Same talker flexibility as POC (GP/GN/GL/GA).
+# Keep talker flexibility across common prefixes (GP/GN/GL/GA).
 # SOG/COG captured when present (fields 7–8); empty strings → no speed/course.
 _rmc = re.compile(
     r"^\$(?:GP|GN|GL|GA)RMC,"
@@ -61,7 +61,7 @@ def _optional_float(s: str) -> float | None:
 
 
 def parse_line(line: str, wall: str, mono: float) -> GpsFix | None:
-    """Parse one NMEA line into ``GpsFix`` (RMC or GGA). Same contract as POC ``_parse_line``; adds optional RMC SOG/COG."""
+    """Parse one NMEA line into ``GpsFix`` (RMC or GGA), with optional RMC SOG/COG."""
     m = _rmc.match(line)
     if m:
         lat_s, lat_h, lon_s, lon_h = m.group(3), m.group(4), m.group(5), m.group(6)
@@ -98,12 +98,11 @@ def parse_line(line: str, wall: str, mono: float) -> GpsFix | None:
     return None
 
 
-# Tests in ``jetson-hcv-risk-poc/tests`` import ``_parse_line`` from ``gps_service.reader``.
 _parse_line = parse_line
 
 
 class GpsSerialReader:
-    """Non-blocking readline iterator over a serial NMEA stream (POC-compatible API)."""
+    """Non-blocking readline iterator over a serial NMEA stream."""
 
     def __init__(self, port: str, baud: int = 9600, timeout_sec: float = 1.0) -> None:
         self._port = port
@@ -173,7 +172,7 @@ class GpsSerialReader:
 
 
 def mock_fixes(count: int = 5) -> Iterator[GpsFix]:
-    """Synthetic fixes (non-NMEA ``raw_sentence``) — same semantics as POC ``mock_fixes``."""
+    """Synthetic fixes (non-NMEA ``raw_sentence``) for bench and test usage."""
     base = time.monotonic()
     for i in range(count):
         yield GpsFix(

@@ -1,3 +1,0 @@
-# sudo cp to /etc/default/hcv-record-validation
-# HCV_CONFIG=/home/isha/hcv-v2x-predictive-risk-mitigation/jetson-hcv-risk-poc/edge/config/default.yaml
-# HCV_DURATION_SEC=30

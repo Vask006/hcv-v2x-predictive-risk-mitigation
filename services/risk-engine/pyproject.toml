@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "hcv-risk-engine"
 version = "0.1.0"
-description = "Phase 1 rule-based risk engine for HCV edge (see services/risk-engine/README.md)"
+description = "Rule-based risk engine for edge safety analytics"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = []

@@ -1,5 +1,5 @@
 """
-Phase 1 rule-based scoring — no ML.
+Rule-based scoring with deterministic heuristics.
 
 Documented assumptions
 ----------------------
